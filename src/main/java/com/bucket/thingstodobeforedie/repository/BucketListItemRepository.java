@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public interface BucketListItemRepository extends JpaRepository<BucketListItem, Long> {
 
@@ -29,12 +31,10 @@ public interface BucketListItemRepository extends JpaRepository<BucketListItem, 
     long countByBucketListIdAndCompletedTrue(Long bucketListId);
     
     /**
-     * Count the total number of items in a bucket list
-     */
-    long countByBucketListId(Long bucketListId);
-    
-    /**
      * Delete all items in a bucket list
      */
     void deleteByBucketListId(Long bucketListId);
+
+    List<BucketListItem> findByBucketListId(Long bucketListId);
+
 } 

@@ -1,7 +1,7 @@
 package com.bucket.thingstodobeforedie.service;
 
-import com.bucket.thingstodobeforedie.dto.BucketListItemRequest;
 import com.bucket.thingstodobeforedie.dto.BucketListItemRecord;
+import com.bucket.thingstodobeforedie.dto.BucketListItemRequest;
 import com.bucket.thingstodobeforedie.dto.PagedResponse;
 import com.bucket.thingstodobeforedie.entity.BucketList;
 import com.bucket.thingstodobeforedie.entity.BucketListItem;
@@ -17,7 +17,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 
@@ -45,13 +44,13 @@ public class BucketListItemService {
 
 
         BucketListItem item = BucketListItem.builder()
-                .name(request.getName())
-                .description(request.getDescription())
+                .name(request.name())
+                .description(request.description())
                 .completed(false)
-                .deadline(request.getDeadline())
-                .priority(request.getPriority())
+                .deadline(request.deadline())
+                .priority(request.priority())
                 .bucketList(bucketList)
-                .notes(request.getNotes())
+                .notes(request.notes())
                 .build();
 
         bucketListItemRepository.save(item);
@@ -104,36 +103,6 @@ public class BucketListItemService {
         
         return new PagedResponse<>(itemRecords, items.getNumber(),
                 items.getSize(), items.getTotalElements(), items.getTotalPages(), items.isLast());
-    }
-
-    /**
-     * Toggle completion status of a bucket list item
-     */
-    public BucketListItemRecord toggleItemCompletion(Long id) {
-        User user = currentUser.getUser();
-        
-        BucketListItem item = bucketListItemRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Bucket list item not found with id: " + id));
-        
-        // Verify the item belongs to the current user
-        if (!item.getBucketList().getUser().getId().equals(user.getId())) {
-            throw new ResourceNotFoundException("Bucket list item not found with id: " + id);
-        }
-        
-        // Toggle completion status
-        item.setCompleted(!item.isCompleted());
-        
-        // Update completedAt date
-        if (item.isCompleted()) {
-            item.setCompletedAt(LocalDateTime.now());
-        } else {
-            item.setCompletedAt(null);
-        }
-        
-        item.setUpdatedAt(LocalDateTime.now());
-        bucketListItemRepository.save(item);
-        
-        return mapToRecord(item);
     }
 
     /**

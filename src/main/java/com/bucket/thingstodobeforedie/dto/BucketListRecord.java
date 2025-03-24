@@ -14,11 +14,11 @@ public record BucketListRecord(
     String description,
     String imageUrl,
     Long userId,
-//    List<String> tags,
+    List<String> tags,
     CategoryRecord category,
-    List<BucketListItemRecord> items,
-    int completedItemsCount,
-    int totalItemsCount,
+    List<BucketListItemRecord> bucketItems,
+    int completedItems,
+    int totalItems,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
 ) {} 

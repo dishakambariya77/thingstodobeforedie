@@ -95,7 +95,7 @@ public class BucketListController {
         PagedResponse<BucketListItemRecord> response = bucketListItemService.getItemsByBucketListId(bucketListId, page, size);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
-    
+
     /**
      * Add a new item to a bucket list
      */
@@ -108,37 +108,22 @@ public class BucketListController {
                 .body(ApiResponse.success("Item added to bucket list", item));
     }
     
-//    /**
-//     * Update a bucket list item
-//     */
-//    @PutMapping("/{bucketListId}/items/{itemId}")
-//    public ResponseEntity<ApiResponse<BucketListItemRecord>> updateBucketListItem(
-//            @PathVariable Long bucketListId,
-//            @PathVariable Long itemId,
-//            @Valid @RequestBody BucketListRequest request) {
-//        BucketListItemRecord item = bucketListItemService.updateBucketListItem(itemId, request);
-//        return ResponseEntity.ok(ApiResponse.success("Item updated successfully", item));
-//    }
-//
-//    /**
-//     * Delete a bucket list item
-//     */
-//    @DeleteMapping("/{bucketListId}/items/{itemId}")
-//    public ResponseEntity<ApiResponse<Void>> deleteBucketListItem(
-//            @PathVariable Long bucketListId,
-//            @PathVariable Long itemId) {
-//        bucketListItemService.deleteBucketListItem(itemId);
-//        return ResponseEntity.ok(ApiResponse.success("Item deleted successfully", null));
-//    }
-    
     /**
      * Toggle completion status of a bucket list item
      */
     @PutMapping("/{bucketListId}/items/{itemId}/toggle-completion")
-    public ResponseEntity<ApiResponse<BucketListItemRecord>> toggleItemCompletion(
+    public ResponseEntity<ApiResponse<BucketListRecord>> toggleItemCompletion(
             @PathVariable Long bucketListId,
             @PathVariable Long itemId) {
-        BucketListItemRecord item = bucketListItemService.toggleItemCompletion(itemId);
+        BucketListRecord item = bucketListService.toggleItemCompletion(bucketListId,itemId);
         return ResponseEntity.ok(ApiResponse.success("Item completion status toggled", item));
     }
+
+//    @GetMapping("/{bucketListId}")
+//    public ResponseEntity<PagedResponse<BucketListItemRecord>> getItemsByBucketListId(
+//            @PathVariable Long bucketListId,
+//            @RequestParam(value = "page", defaultValue = "0") int page,
+//            @RequestParam(value = "size", defaultValue = "10") int size) {
+//        return ResponseEntity.ok(bucketListItemService.getItemsByBucketListId(bucketListId, page, size));
+//    }
 } 

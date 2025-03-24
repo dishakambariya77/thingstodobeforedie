@@ -31,25 +31,26 @@ public class DefaultCategoriesInitializer {
         }
 
         log.info("Initializing default bucket list categories");
-        
+
         List<Category> defaultCategories = Arrays.asList(
-            createCategory("Travel", "Places to visit", "🌎", CategoryType.BUCKET_LIST),
-            createCategory("Adventure", "Exciting activities", "🧗", CategoryType.BUCKET_LIST),
-            createCategory("Career", "Professional goals", "💼", CategoryType.BUCKET_LIST),
-            createCategory("Education", "Learning goals", "🎓", CategoryType.BUCKET_LIST),
-            createCategory("Personal", "Self-improvement goals", "🧘", CategoryType.BUCKET_LIST),
-            createCategory("Health", "Health and fitness goals", "💪", CategoryType.BUCKET_LIST),
-            createCategory("Relationships", "Family and friend goals", "👨‍👩‍👧‍👦", CategoryType.BUCKET_LIST),
-            createCategory("Entertainment", "Movies, books, etc. to experience", "🎬", CategoryType.BUCKET_LIST),
-            createCategory("Financial", "Money-related goals", "💰", CategoryType.BUCKET_LIST),
-            createCategory("Food & Drink", "Culinary experiences", "🍽️", CategoryType.BUCKET_LIST),
-            createCategory("Skills", "New skills to master", "🎯", CategoryType.BUCKET_LIST),
-            createCategory("Creative", "Creative projects", "🎨", CategoryType.BUCKET_LIST),
-            createCategory("Spiritual", "Spiritual experiences", "🙏", CategoryType.BUCKET_LIST),
-            createCategory("Philanthropy", "Ways to give back", "❤️", CategoryType.BUCKET_LIST),
-            createCategory("Lifestyle", "Lifestyle changes", "🏡", CategoryType.BUCKET_LIST)
+                createCategory("Travel", "Places to visit", "public", CategoryType.BUCKET_LIST),
+                createCategory("Adventure", "Exciting activities", "terrain", CategoryType.BUCKET_LIST),
+                createCategory("Career", "Professional goals", "work", CategoryType.BUCKET_LIST),
+                createCategory("Education", "Learning goals", "school", CategoryType.BUCKET_LIST),
+                createCategory("Personal", "Self-improvement goals", "self_improvement", CategoryType.BUCKET_LIST),
+                createCategory("Health", "Health and fitness goals", "fitness_center", CategoryType.BUCKET_LIST),
+                createCategory("Relationships", "Family and friend goals", "group", CategoryType.BUCKET_LIST),
+                createCategory("Entertainment", "Movies, books, etc. to experience", "movie", CategoryType.BUCKET_LIST),
+                createCategory("Financial", "Money-related goals", "account_balance", CategoryType.BUCKET_LIST),
+                createCategory("Food & Drink", "Culinary experiences", "restaurant", CategoryType.BUCKET_LIST),
+                createCategory("Skills", "New skills to master", "sports_kabaddi", CategoryType.BUCKET_LIST),
+                createCategory("Creative", "Creative projects", "brush", CategoryType.BUCKET_LIST),
+                createCategory("Spiritual", "Spiritual experiences", "self_improvement", CategoryType.BUCKET_LIST),
+                createCategory("Philanthropy", "Ways to give back", "volunteer_activism", CategoryType.BUCKET_LIST),
+                createCategory("Lifestyle", "Lifestyle changes", "home", CategoryType.BUCKET_LIST)
         );
-        
+
+
         categoryRepository.saveAll(defaultCategories);
         log.info("Initialized {} default categories", defaultCategories.size());
     }
@@ -58,7 +59,7 @@ public class DefaultCategoriesInitializer {
         return Category.builder()
                 .name(name)
                 .description(description)
-                .icon(icon)
+                .iconUrl(icon)
                 .type(type)
                 .build();
     }

@@ -32,38 +32,44 @@ public class BucketListImageService {
      */
     @Transactional
     public ImageUploadResponse uploadBucketListImage(Long bucketListId, MultipartFile file) {
-        // Get current user
         User currentUser = userService.getCurrentUser();
 
-        // Find the bucket list
         BucketList bucketList = bucketListRepository.findById(bucketListId)
                 .orElseThrow(() -> new ResourceNotFoundException("Bucket List not found with id: " + bucketListId));
 
-        // Check if the bucket list belongs to the current user
         if (!bucketList.getUser().getId().equals(currentUser.getId())) {
             throw new AuthenticationException("You don't have permission to upload an image for this bucket list");
         }
 
         try {
-            // Construct directory path: bucket-lists/{userId}/{bucketListId}
             String directory = String.format("bucket-lists/%d/%d", currentUser.getId(), bucketListId);
-            
-            // Upload the file to S3
-            String imageUrl = s3Service.uploadFile(file, directory);
-            
-            // Update the bucket list with the image URL
-            bucketList.setImageUrl(imageUrl);
+
+            // Step 1: Get old image URL before uploading
+            String oldImageUrl = bucketList.getImageUrl();
+
+            // Step 2: Upload new image
+            String newImageUrl = s3Service.uploadFile(file, directory);
+
+            // Step 3: Delete old image from S3 if it exists
+            if (oldImageUrl != null) {
+                String oldImageKey = oldImageUrl.substring(oldImageUrl.indexOf("bucket-lists"));
+                s3Service.deleteFile(oldImageKey);
+            }
+
+            // Step 4: Update DB with new image URL
+            bucketList.setImageUrl(newImageUrl);
             bucketListRepository.save(bucketList);
-            
+
             return ImageUploadResponse.builder()
-                    .imageUrl(imageUrl)
+                    .imageUrl(newImageUrl)
                     .message("Image uploaded successfully")
                     .bucketListId(bucketListId)
                     .build();
-            
+
         } catch (IOException e) {
             log.error("Failed to upload image for bucket list {}: {}", bucketListId, e.getMessage());
             throw new RuntimeException("Failed to upload image: " + e.getMessage());
         }
     }
+
 } 
