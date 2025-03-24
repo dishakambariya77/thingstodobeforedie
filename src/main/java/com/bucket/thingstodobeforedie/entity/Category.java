@@ -1,5 +1,7 @@
 package com.bucket.thingstodobeforedie.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -21,15 +23,17 @@ public class Category extends BaseEntity {
     
     private String description;
     
-    private String icon;
+    private String iconUrl;
     
     @Enumerated(EnumType.STRING)
     private CategoryType type;
     
     @OneToMany(mappedBy = "category")
+    @JsonIgnore
     private List<BlogPost> blogPosts;
     
     @OneToMany(mappedBy = "category")
+    @JsonIgnore
     private List<BucketList> bucketLists;
 
 } 

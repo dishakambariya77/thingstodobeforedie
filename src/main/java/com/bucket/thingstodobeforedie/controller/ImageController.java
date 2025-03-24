@@ -10,9 +10,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/api/bucket-lists")
+@RequestMapping("/api/v1/upload")
 @RequiredArgsConstructor
-public class BucketListImageController {
+public class ImageController {
 
     private final BucketListImageService bucketListImageService;
 
@@ -26,7 +26,7 @@ public class BucketListImageController {
     @PostMapping(value = "/{bucketListId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<ImageUploadResponse>> uploadBucketListImage(
             @PathVariable Long bucketListId,
-            @RequestParam("file") MultipartFile file) {
+            @RequestPart("file") MultipartFile file) {
         
         ImageUploadResponse response = bucketListImageService.uploadBucketListImage(bucketListId, file);
         return ResponseEntity.ok(ApiResponse.success("Image uploaded successfully", response));
