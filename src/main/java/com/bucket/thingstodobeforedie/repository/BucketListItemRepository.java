@@ -26,11 +26,6 @@ public interface BucketListItemRepository extends JpaRepository<BucketListItem, 
     Page<BucketListItem> findByBucketListId(Long bucketListId, Pageable pageable);
     
     /**
-     * Count the number of completed items in a bucket list
-     */
-    long countByBucketListIdAndCompletedTrue(Long bucketListId);
-    
-    /**
      * Delete all items in a bucket list
      */
     void deleteByBucketListId(Long bucketListId);

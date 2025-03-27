@@ -1,11 +1,11 @@
 package com.bucket.thingstodobeforedie.service;
 
 import com.bucket.thingstodobeforedie.dto.ImageUploadResponse;
-import com.bucket.thingstodobeforedie.entity.BucketList;
+import com.bucket.thingstodobeforedie.entity.BlogPost;
 import com.bucket.thingstodobeforedie.entity.User;
 import com.bucket.thingstodobeforedie.exception.AuthenticationException;
 import com.bucket.thingstodobeforedie.exception.ResourceNotFoundException;
-import com.bucket.thingstodobeforedie.repository.BucketListRepository;
+import com.bucket.thingstodobeforedie.repository.BlogPostRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,48 +17,48 @@ import java.io.IOException;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class BucketListImageService {
+public class BlogImageService {
 
-    private final BucketListRepository bucketListRepository;
+    private final BlogPostRepository blogPostRepository;
     private final UserService userService;
     private final S3Service s3Service;
 
     /**
      * Upload a bucket list image
      *
-     * @param bucketListId The ID of the bucket list
+     * @param blogPostId The ID of the bucket list
      * @param file The image file to upload
      * @return The image upload response
      */
     @Transactional
-    public ImageUploadResponse uploadBucketListImage(Long bucketListId, MultipartFile file) {
+    public ImageUploadResponse uploadBlogPostImage(Long blogPostId, MultipartFile file) {
         User currentUser = userService.getCurrentUser();
 
-        BucketList bucketList = bucketListRepository.findById(bucketListId)
-                .orElseThrow(() -> new ResourceNotFoundException("Bucket List not found with id: " + bucketListId));
+        BlogPost blogPost = blogPostRepository.findById(blogPostId)
+                .orElseThrow(() -> new ResourceNotFoundException("Blog post not found with id: " + blogPostId));
 
-        if (!bucketList.getUser().getId().equals(currentUser.getId())) {
+        if (!blogPost.getUser().getId().equals(currentUser.getId())) {
             throw new AuthenticationException("You don't have permission to upload an image for this bucket list");
         }
 
         try {
-            String directory = String.format("bucket-lists/%d/%d", currentUser.getId(), bucketListId);
+            String directory = String.format("blogs/%d/%d", currentUser.getId(), blogPostId);
 
             // Step 1: Get old image URL before uploading
-            String oldImageUrl = bucketList.getImageUrl();
+            String oldImageUrl = blogPost.getFeaturedImage();
 
             // Step 2: Upload new image
             String newImageUrl = s3Service.uploadFile(file, directory);
 
             // Step 3: Delete old image from S3 if it exists
             if (oldImageUrl != null) {
-                String oldImageKey = oldImageUrl.substring(oldImageUrl.indexOf("bucket-lists"));
+                String oldImageKey = oldImageUrl.substring(oldImageUrl.indexOf("blogs"));
                 s3Service.deleteFile(oldImageKey);
             }
 
             // Step 4: Update DB with new image URL
-            bucketList.setImageUrl(newImageUrl);
-            bucketListRepository.save(bucketList);
+            blogPost.setFeaturedImage(newImageUrl);
+            blogPostRepository.save(blogPost);
 
             return ImageUploadResponse.builder()
                     .imageUrl(newImageUrl)
@@ -66,7 +66,7 @@ public class BucketListImageService {
                     .build();
 
         } catch (IOException e) {
-            log.error("Failed to upload image for bucket list {}: {}", bucketListId, e.getMessage());
+            log.error("Failed to upload image for bucket list {}: {}", blogPostId, e.getMessage());
             throw new RuntimeException("Failed to upload image: " + e.getMessage());
         }
     }

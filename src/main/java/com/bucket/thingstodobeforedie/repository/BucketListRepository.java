@@ -1,6 +1,7 @@
 package com.bucket.thingstodobeforedie.repository;
 
 import com.bucket.thingstodobeforedie.entity.BucketList;
+import com.bucket.thingstodobeforedie.entity.BucketStatus;
 import com.bucket.thingstodobeforedie.entity.Category;
 import com.bucket.thingstodobeforedie.entity.User;
 import org.springframework.data.domain.Page;
@@ -19,6 +20,16 @@ public interface BucketListRepository extends JpaRepository<BucketList, Long> {
     Page<BucketList> findByUserAndCategoryOrderByCreatedAtDesc(User user, Category category, Pageable pageable);
     
     Page<BucketList> findByCategoryOrderByCreatedAtDesc(Category category, Pageable pageable);
+    
+    /**
+     * Find bucket lists by user and status ordered by creation date
+     */
+    Page<BucketList> findByUserAndStatusOrderByCreatedAtDesc(User user, BucketStatus status, Pageable pageable);
+    
+    /**
+     * Count bucket lists by user ID and status
+     */
+    long countByUserIdAndStatus(Long userId, BucketStatus status);
     
     @Query("SELECT b FROM BucketList b WHERE b.user = :user AND " +
            "LOWER(b.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
@@ -43,4 +54,9 @@ public interface BucketListRepository extends JpaRepository<BucketList, Long> {
      * Check if a bucket list with the given id belongs to the specified user
      */
     boolean existsByIdAndUserId(Long id, Long userId);
+
+    /**
+     * Count all bucket lists for a specific user
+     */
+    long countByUserId(Long userId);
 } 

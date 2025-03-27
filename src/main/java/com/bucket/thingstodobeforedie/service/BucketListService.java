@@ -1,10 +1,7 @@
 package com.bucket.thingstodobeforedie.service;
 
 import com.bucket.thingstodobeforedie.dto.*;
-import com.bucket.thingstodobeforedie.entity.BucketList;
-import com.bucket.thingstodobeforedie.entity.BucketListItem;
-import com.bucket.thingstodobeforedie.entity.Category;
-import com.bucket.thingstodobeforedie.entity.User;
+import com.bucket.thingstodobeforedie.entity.*;
 import com.bucket.thingstodobeforedie.exception.ResourceNotFoundException;
 import com.bucket.thingstodobeforedie.repository.BucketListItemRepository;
 import com.bucket.thingstodobeforedie.repository.BucketListRepository;
@@ -19,8 +16,11 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -41,7 +41,7 @@ public class BucketListService {
      */
     @Transactional
     public BucketListRecord createBucketList(BucketListRequest request) {
-        User currentUser = userService.getCurrentUser();
+        User user = currentUser.getUser();
         
         Category category = null;
         if (request.categoryId() != null) {
@@ -57,7 +57,7 @@ public class BucketListService {
         BucketList bucketList = BucketList.builder()
                 .name(request.name())
                 .description(request.description())
-                .user(currentUser)
+                .user(user)
                 .category(category)
                 .tags(tags)
                 .build();
@@ -89,13 +89,13 @@ public class BucketListService {
      */
     @Transactional(readOnly = true)
     public BucketListRecord getBucketListById(Long id) {
-        User currentUser = userService.getCurrentUser();
+        User user = currentUser.getUser();
         
         BucketList bucketList = bucketListRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Bucket List", "id", id));
         
         // Check if the bucket list belongs to the current user
-        if (!bucketList.getUser().getId().equals(currentUser.getId())) {
+        if (!bucketList.getUser().getId().equals(user.getId())) {
             throw new com.bucket.thingstodobeforedie.exception.AuthenticationException("You don't have permission to access this bucket list");
         }
         
@@ -107,12 +107,12 @@ public class BucketListService {
      */
     @Transactional(readOnly = true)
     public PagedResponse<BucketListRecord> getBucketLists(int page, int size) {
-        User currentUser = userService.getCurrentUser();
+        User user = currentUser.getUser();
         
         validatePageNumberAndSize(page, size);
         
         Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, "createdAt");
-        Page<BucketList> bucketLists = bucketListRepository.findByUserOrderByCreatedAtDesc(currentUser, pageable);
+        Page<BucketList> bucketLists = bucketListRepository.findByUserOrderByCreatedAtDesc(user, pageable);
         
         if (bucketLists.getNumberOfElements() == 0) {
             return new PagedResponse<>(
@@ -142,7 +142,7 @@ public class BucketListService {
      */
     @Transactional(readOnly = true)
     public PagedResponse<BucketListRecord> getBucketListsByCategory(Long categoryId, int page, int size) {
-        User currentUser = userService.getCurrentUser();
+        User user = currentUser.getUser();
         
         validatePageNumberAndSize(page, size);
         
@@ -150,7 +150,7 @@ public class BucketListService {
                 .orElseThrow(() -> new ResourceNotFoundException("Category", "id", categoryId));
         
         Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, "createdAt");
-        Page<BucketList> bucketLists = bucketListRepository.findByUserAndCategoryOrderByCreatedAtDesc(currentUser, category, pageable);
+        Page<BucketList> bucketLists = bucketListRepository.findByUserAndCategoryOrderByCreatedAtDesc(user, category, pageable);
         
         if (bucketLists.getNumberOfElements() == 0) {
             return new PagedResponse<>(
@@ -180,13 +180,13 @@ public class BucketListService {
      */
     @Transactional
     public BucketListRecord updateBucketList(Long id, BucketListRequest request) {
-        User currentUser = userService.getCurrentUser();
+        User user = currentUser.getUser();
 
         BucketList bucketList = bucketListRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Bucket List", "id", id));
 
         // Check if the bucket list belongs to the current user
-        if (!bucketList.getUser().getId().equals(currentUser.getId())) {
+        if (!bucketList.getUser().getId().equals(user.getId())) {
             throw new com.bucket.thingstodobeforedie.exception.AuthenticationException("You don't have permission to update this bucket list");
         }
 
@@ -262,13 +262,13 @@ public class BucketListService {
      */
     @Transactional
     public void deleteBucketList(Long id) {
-        User currentUser = userService.getCurrentUser();
+        User user = currentUser.getUser();
         
         BucketList bucketList = bucketListRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Bucket List", "id", id));
         
         // Check if the bucket list belongs to the current user
-        if (!bucketList.getUser().getId().equals(currentUser.getId())) {
+        if (!bucketList.getUser().getId().equals(user.getId())) {
             throw new com.bucket.thingstodobeforedie.exception.AuthenticationException("You don't have permission to delete this bucket list");
         }
         
@@ -310,7 +310,9 @@ public class BucketListService {
      */
     private BucketListRecord mapToRecord(BucketList bucketList) {
         // Count completed and total items
-        long completedItemsCount = bucketListItemRepository.countByBucketListIdAndCompletedTrue(bucketList.getId());
+        int completedItemsCount = (int) bucketList.getBucketListItems().stream()
+                .filter(BucketListItem::isCompleted) // Count only completed items
+                .count();
 
         List<String> tagList = bucketList.getTags() != null ?
                 List.of(bucketList.getTags().split(",")) :
@@ -352,7 +354,20 @@ public class BucketListService {
                             .build())
                     .collect(Collectors.toList());
         }
-        
+
+        int totalItems = bucketList.getBucketListItems().size();
+
+        int progressPercentage = totalItems > 0 ? (completedItemsCount * 100) / totalItems : 0;
+
+        LocalDateTime bucketDeadlineTime = null;
+        if (!items.isEmpty()) {
+            bucketDeadlineTime = items.stream()
+                    .filter(item -> item.getDeadline() != null) // Exclude null deadlines
+                    .max(Comparator.comparing(BucketListItem::getDeadline))
+                    .map(BucketListItem::getDeadline)
+                    .orElse(null);
+        }
+
         return new BucketListRecord(
                 bucketList.getId(),
                 bucketList.getName(),
@@ -362,10 +377,12 @@ public class BucketListService {
                 tagList,
                 categoryRecord,
                 itemRecords,
-                (int) completedItemsCount,
-                bucketList.getBucketListItems().size(),
+                completedItemsCount,
+                totalItems,
                 bucketList.getCreatedAt(),
-                bucketList.getUpdatedAt()
+                bucketList.getUpdatedAt(),
+                progressPercentage,
+                bucketDeadlineTime
         );
     }
 
@@ -384,5 +401,25 @@ public class BucketListService {
         if (size > 100) {
             throw new IllegalArgumentException("Page size must not be greater than 100.");
         }
+    }
+
+    /**
+     * Get recent ongoing bucket list items for the specified user
+     * 
+     * @param userId User ID to fetch bucket list items for
+     * @param limit Number of items to return
+     * @return List of recent ongoing bucket list items
+     */
+    @Transactional(readOnly = true)
+    public List<BucketListRecord> getRecentOngoingBucketListItems(Long userId, int limit) {
+        User user = userService.getUserById(userId);
+        
+        Pageable pageable = PageRequest.of(0, limit, Sort.Direction.DESC, "createdAt");
+        Page<BucketList> ongoingBucketLists = bucketListRepository.findByUserAndStatusOrderByCreatedAtDesc(
+                user, BucketStatus.ACTIVE, pageable);
+        
+        return ongoingBucketLists.getContent().stream()
+                .map(this::mapToRecord)
+                .collect(Collectors.toList());
     }
 } 

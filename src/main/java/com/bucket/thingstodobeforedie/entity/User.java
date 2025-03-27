@@ -1,5 +1,7 @@
 package com.bucket.thingstodobeforedie.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -10,6 +12,8 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -40,12 +44,31 @@ public class User extends BaseEntity implements UserDetails {
     
     private String bio;
     
+    @Column(name = "profile_image")
     private String profileImage;
+    
+    @Column(name = "location")
+    private String location;
+    
+    @Column(name = "website")
+    private String website;
+    
+    @Column(name = "social_links")
+    private String socialLinks;
+    
+    @ElementCollection
+    @CollectionTable(name = "user_interests", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "interest")
+    private List<String> interests = new ArrayList<>();
+    
+    @Column(name = "last_active")
+    private LocalDateTime lastActive;
     
     @Enumerated(EnumType.STRING)
     private Role role;
     
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<BlogPost> blogPosts;
     
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)

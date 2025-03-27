@@ -24,6 +24,13 @@ public class BlogPost extends BaseEntity {
     
     private String featuredImage;
     
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private BlogStatus status = BlogStatus.DRAFT;
+    
+    @Column(nullable = false, columnDefinition = "bigint default 0")
+    private Long views = 0L;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;

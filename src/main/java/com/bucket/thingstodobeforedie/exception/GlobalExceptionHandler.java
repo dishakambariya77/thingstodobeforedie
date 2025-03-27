@@ -83,6 +83,7 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ResponseEntity<ApiResponse<?>> handleIllegalArgumentException(IllegalArgumentException ex, WebRequest request) {
         log.error("Invalid argument: {}", ex.getMessage());
+        ex.printStackTrace();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error(HttpStatus.BAD_REQUEST, ex.getMessage()));
     }

@@ -1,7 +1,5 @@
 package com.bucket.thingstodobeforedie.dto;
 
-import com.bucket.thingstodobeforedie.entity.BucketListItem;
-
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -20,5 +18,7 @@ public record BucketListRecord(
     int completedItems,
     int totalItems,
     LocalDateTime createdAt,
-    LocalDateTime updatedAt
+    LocalDateTime updatedAt,
+    int progress,
+    LocalDateTime dueDate
 ) {} 
