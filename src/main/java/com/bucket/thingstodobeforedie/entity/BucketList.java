@@ -31,6 +31,10 @@ public class BucketList extends BaseEntity {
 
     @Column(name = "tags")
     private String tags;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private BucketStatus status = BucketStatus.ACTIVE;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)

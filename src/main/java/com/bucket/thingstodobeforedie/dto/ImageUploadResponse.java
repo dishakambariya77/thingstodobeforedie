@@ -15,5 +15,4 @@ import lombok.NoArgsConstructor;
 public class ImageUploadResponse {
     private String imageUrl;
     private String message;
-    private Long bucketListId;
 } 
