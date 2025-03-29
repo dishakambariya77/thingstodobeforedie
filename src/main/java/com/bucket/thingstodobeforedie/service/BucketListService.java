@@ -16,13 +16,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,6 +30,7 @@ public class BucketListService {
     private final BucketListItemRepository bucketListItemRepository;
     private final CategoryRepository categoryRepository;
     private final CurrentUser currentUser;
+    private final ActivityService activityService;
 
     /**
      * Create a new bucket list
@@ -60,10 +56,21 @@ public class BucketListService {
                 .user(user)
                 .category(category)
                 .tags(tags)
+                .status(BucketStatus.ACTIVE)
                 .build();
 
         BucketList savedBucketList = bucketListRepository.save(bucketList);
 
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("bucketListName", savedBucketList.getName());
+        activityService.trackActivity(
+                user,
+                ActivityType.BUCKET_LIST_CREATED,
+                String.format("Added new goal \"%s\"", bucketList.getName()),
+                ActivityIcon.BUCKET_LIST_CREATED,
+                metadata
+        );
+        
         if (request.bucketItems() != null && !request.bucketItems().isEmpty()) {
             List<BucketListItem> bucketItems = request.bucketItems().stream()
                     .map(item -> BucketListItem.builder()
@@ -253,6 +260,16 @@ public class BucketListService {
 
         BucketList updatedBucketList = bucketListRepository.save(bucketList);
 
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("bucketListName", updatedBucketList.getName());
+        activityService.trackActivity(
+                user,
+                ActivityType.BUCKET_LIST_UPDATED,
+                String.format("Updated progress on \"%s\"", bucketList.getName()),
+                ActivityIcon.BUCKET_LIST_UPDATED,
+                metadata
+        );
+
         return mapToRecord(updatedBucketList);
     }
 
@@ -271,6 +288,17 @@ public class BucketListService {
         if (!bucketList.getUser().getId().equals(user.getId())) {
             throw new com.bucket.thingstodobeforedie.exception.AuthenticationException("You don't have permission to delete this bucket list");
         }
+
+        // Track the bucket list deletion activity before deletion
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("bucketListName", bucketList.getName());
+        activityService.trackActivity(
+                user,
+                ActivityType.BUCKET_LIST_DELETED,
+                String.format("Removed goal: \"%s\"", bucketList.getName()),
+                ActivityIcon.BUCKET_LIST_DELETED,
+                metadata
+        );
         
         bucketListRepository.delete(bucketList);
     }
@@ -278,6 +306,7 @@ public class BucketListService {
     /**
      * Toggle completion status of a bucket list item
      */
+    @Transactional
     public BucketListRecord toggleItemCompletion(Long bucketListId, Long itemId) {
         User user = currentUser.getUser();
 
@@ -295,12 +324,58 @@ public class BucketListService {
         // Update completedAt date
         if (item.isCompleted()) {
             item.setCompletedAt(LocalDateTime.now());
+
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("bucketListName", item.getBucketList().getName());
+            metadata.put("bucketListItemName", item.getName());
+
+            activityService.trackActivity(
+                    user,
+                    ActivityType.BUCKET_ITEM_COMPLETED,
+                    String.format("Completed \"%s\"", item.getName()),
+                    ActivityIcon.BUCKET_ITEM_COMPLETED,
+                    metadata
+            );
         } else {
             item.setCompletedAt(null);
+
+            // Track un-completion activity
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("bucketListName", item.getBucketList().getName());
+            metadata.put("bucketListItemName", item.getName());
+
+            activityService.trackActivity(
+                    user,
+                    ActivityType.BUCKET_ITEM_UPDATED,
+                    String.format("Marked bucket list item as not completed: \"%s\"", item.getName()),
+                    ActivityIcon.BUCKET_ITEM_UPDATED,
+                    metadata
+            );
         }
 
         item.setUpdatedAt(LocalDateTime.now());
         bucketListItemRepository.save(item);
+
+        // Check if all items in the bucket list are completed
+        BucketList bucketList = item.getBucketList();
+        boolean allCompleted = bucketList.getBucketListItems().stream().allMatch(BucketListItem::isCompleted);
+
+        if (allCompleted) {
+            bucketList.setStatus(BucketStatus.COMPLETED);
+
+            // Track bucket list completion
+            activityService.trackActivity(
+                    user,
+                    ActivityType.BUCKET_LIST_COMPLETED,
+                    String.format("Completed the bucket list \"%s\"", bucketList.getName()),
+                    ActivityIcon.BUCKET_LIST_COMPLETED,
+                    Map.of("bucketListName", bucketList.getName())
+            );
+        } else {
+            bucketList.setStatus(BucketStatus.ACTIVE);
+        }
+
+        bucketListRepository.save(bucketList);
 
         return getBucketListById(bucketListId);
     }

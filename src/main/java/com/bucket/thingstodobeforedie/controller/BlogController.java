@@ -96,8 +96,10 @@ public class BlogController {
     })
     @GetMapping
     public ResponseEntity<Page<BlogPostDTO>> getAllBlogPosts(
-            @Parameter(description = "Pagination parameters") Pageable pageable) {
-        return ResponseEntity.ok(blogService.getAllBlogPosts(pageable));
+            @Parameter(description = "Pagination parameters") Pageable pageable,
+            @Parameter(description = "Filter by blog post status (published, draft, or all)")
+            @RequestParam(required = false, defaultValue = "all") String status) {
+        return ResponseEntity.ok(blogService.getAllBlogPosts(pageable,status));
     }
 
     @Operation(summary = "Get blog posts by user", description = "Returns blog posts created by a specific user")
