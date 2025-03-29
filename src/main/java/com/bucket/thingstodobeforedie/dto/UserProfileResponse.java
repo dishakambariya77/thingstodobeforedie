@@ -41,6 +41,11 @@ public class UserProfileResponse {
     private String socialLinks; // Could be JSON or comma-separated values
     private List<String> interests; // User's interests or hobbies
     
+    // Recent activity
+    private List<ActivityResponse> activities;
+
+    private List<AchievementResponse> achievements;
+    
     // Profile completion percentage (calculated based on filled fields)
     private int profileCompletionPercentage;
 } 

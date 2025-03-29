@@ -26,12 +26,11 @@ public interface BlogPostRepository extends JpaRepository<BlogPost, Long> {
            "LOWER(b.title) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
            "LOWER(b.content) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
     Page<BlogPost> searchBlogPosts(String searchTerm, Pageable pageable);
-    
-    List<BlogPost> findTop5ByOrderByCreatedAtDesc();
+
     
     // New methods for trending blogs
     
-    Page<BlogPost> findByStatusOrderByViewsDesc(BlogStatus status, Pageable pageable);
+    Page<BlogPost> findByStatusOrderByCreatedAtDesc(BlogStatus status, Pageable pageable);
     
     @Modifying
     @Query("UPDATE BlogPost b SET b.views = b.views + 1 WHERE b.id = :blogId")

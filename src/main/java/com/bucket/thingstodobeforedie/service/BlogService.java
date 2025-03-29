@@ -13,7 +13,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -28,6 +30,7 @@ public class BlogService {
     private final CommentRepository commentRepository;
     private final CurrentUser currentUser;
     private final ViewTrackingService viewTrackingService;
+    private final ActivityService activityService;
     
     @Transactional
     public BlogPostDTO createBlogPost(BlogPostRequest request) {
@@ -49,6 +52,17 @@ public class BlogService {
                 .build();
 
         blogPost = blogPostRepository.save(blogPost);
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("blogPostTitle", blogPost.getTitle());
+
+        activityService.trackActivity(
+                currentUser.getUser(),
+                ActivityType.BLOG_POST_CREATED,
+                String.format("Added a new Blog: \"%s\"", blogPost.getTitle()),
+                ActivityIcon.BLOG_POST_CREATED,
+                metadata
+        );
         return mapToBlogPostDTO(blogPost);
     }
 
@@ -108,9 +122,18 @@ public class BlogService {
         return blogPost;
     }
     
-    public Page<BlogPostDTO> getAllBlogPosts(Pageable pageable) {
-        return blogPostRepository.findAllByOrderByCreatedAtDesc(pageable)
-                .map(this::mapToBlogPostDTO);
+    public Page<BlogPostDTO> getAllBlogPosts(Pageable pageable,String status) {
+        Page<BlogPost> blogPosts;
+
+        if ("published".equalsIgnoreCase(status)) {
+            blogPosts = blogPostRepository.findByStatusOrderByCreatedAtDesc(BlogStatus.PUBLISHED, pageable);
+        } else if ("draft".equalsIgnoreCase(status)) {
+            blogPosts = blogPostRepository.findByStatusOrderByCreatedAtDesc(BlogStatus.DRAFT, pageable);
+        } else {
+            blogPosts = blogPostRepository.findAllByOrderByCreatedAtDesc(pageable);
+        }
+
+        return blogPosts.map(this::mapToBlogPostDTO);
     }
 
     public Page<BlogPostDTO> getBlogPostsByUser(Long userId, Pageable pageable) {
@@ -156,8 +179,21 @@ public class BlogService {
                     .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
             blogPost.setCategory(category);
         }
-        
-        return mapToBlogPostDTO(blogPostRepository.save(blogPost));
+
+        BlogPost updatedBlogPost = blogPostRepository.save(blogPost);
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("blogPostTitle", blogPost.getTitle());
+
+        activityService.trackActivity(
+                currentUser.getUser(),
+                ActivityType.BLOG_POST_UPDATED,
+                String.format("Updated blog details: \"%s\"", blogPost.getTitle()),
+                ActivityIcon.BLOG_POST_UPDATED,
+                metadata
+        );
+
+        return mapToBlogPostDTO(updatedBlogPost);
     }
     
     @Transactional
@@ -172,6 +208,18 @@ public class BlogService {
         
         // Delete the blog post
         blogPostRepository.delete(blogPost);
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("blogPostTitle", blogPost.getTitle());
+
+        activityService.trackActivity(
+                currentUser.getUser(),
+                ActivityType.BLOG_POST_DELETED,
+                String.format("Deleted Blog: \"%s\"", blogPost.getTitle()),
+                ActivityIcon.BLOG_POST_DELETED,
+                metadata
+        );
+
     }
     
     @Transactional
@@ -186,14 +234,29 @@ public class BlogService {
         
         // Update the status
         blogPost.setStatus(status);
+
+        BlogPost updatedBlogPost = blogPostRepository.save(blogPost);
+
+        if(status.equals(BlogStatus.PUBLISHED)){
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("blogPostTitle", blogPost.getTitle());
+
+            activityService.trackActivity(
+                    currentUser.getUser(),
+                    ActivityType.BLOG_POST_PUBLISHED,
+                    String.format("Published Blog: \"%s\"", blogPost.getTitle()),
+                    ActivityIcon.BLOG_POST_PUBLISHED,
+                    metadata
+            );
+        }
         
-        return mapToBlogPostDTO(blogPostRepository.save(blogPost));
+        return mapToBlogPostDTO(updatedBlogPost);
     }
     
     @Transactional
-    public BlogPostDTO toggleLike(Long id) {
+    public BlogPostDTO toggleLike(Long blogId) {
         // Get the blog post
-        BlogPost blogPost = getPublishedOrOwnedBlogPost(id);
+        BlogPost blogPost = getPublishedOrOwnedBlogPost(blogId);
         
         // Get the current user
         User user = currentUser.getUser();
@@ -204,12 +267,37 @@ public class BlogService {
         if (existingLike.isPresent()) {
             // Remove the like
             likeRepository.delete(existingLike.get());
+
+            // Track unlike activity
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("blogPostTitle", blogPost.getTitle());
+
+            activityService.trackActivity(
+                    currentUser.getUser(),
+                    ActivityType.UNLIKED_BLOG_POST,
+                    String.format("Unliked the blog post: \"%s\"", blogPost.getTitle()),
+                    ActivityIcon.UNLIKED_BLOG_POST,
+                    metadata
+            );
+
         } else {
             // Add a new like
             Like like = new Like();
             like.setUser(user);
             like.setBlogPost(blogPost);
             likeRepository.save(like);
+
+            // Track like activity
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("blogPostTitle", blogPost.getTitle());
+
+            activityService.trackActivity(
+                    currentUser.getUser(),
+                    ActivityType.LIKED_BLOG_POST,
+                    String.format("Liked blog post: \"%s\"", blogPost.getTitle()),
+                    ActivityIcon.LIKED_BLOG_POST,
+                    metadata
+            );
         }
         
         return mapToBlogPostDTO(blogPost);
@@ -231,8 +319,24 @@ public class BlogService {
         comment.setBlogPost(blogPost);
         comment.setUser(currentUser.getUser());
         comment.setCreatedAt(LocalDateTime.now());
-        
-        return mapToCommentDTO(commentRepository.save(comment));
+
+        Comment savedComment = commentRepository.save(comment);
+
+        // Track comment activity
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("blogPostTitle", blogPost.getTitle());
+        metadata.put("commentContent", request.content());
+
+        activityService.trackActivity(
+                currentUser.getUser(),
+                ActivityType.COMMENT_ADDED,
+                String.format("Commented on blog post: \"%s\"", blogPost.getTitle()),
+                ActivityIcon.COMMENT_ADDED,
+                metadata
+        );
+
+
+        return mapToCommentDTO(savedComment);
     }
     
     @Transactional
@@ -246,6 +350,19 @@ public class BlogService {
         
         comment.setContent(request.content());
         comment = commentRepository.save(comment);
+
+
+        // Track comment activity
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("commentContent", request.content());
+
+        activityService.trackActivity(
+                currentUser.getUser(),
+                ActivityType.COMMENT_UPDATED,
+                String.format("Updated comment on blog post: \"%s\"", comment.getBlogPost().getTitle()),
+                ActivityIcon.COMMENT_UPDATED,
+                metadata
+        );
         
         return mapToCommentDTO(comment);
     }
@@ -258,8 +375,20 @@ public class BlogService {
         if (!comment.getUser().getId().equals(currentUser.getUser().getId())) {
             throw new UnauthorizedException("You don't have permission to delete this comment");
         }
-        
+
         commentRepository.delete(comment);
+
+        // Track comment activity
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("commentContent", comment.getContent());
+
+        activityService.trackActivity(
+                currentUser.getUser(),
+                ActivityType.COMMENT_DELETED,
+                String.format("Deleted comment on blog post: \"%s\"", comment.getBlogPost().getTitle()),
+                ActivityIcon.COMMENT_REMOVED,
+                metadata
+        );
     }
     
     public Page<CommentDTO> getCommentsByBlogPost(Long blogId, Pageable pageable) {
@@ -326,6 +455,7 @@ public class BlogService {
                 .createdAt(blogPost.getCreatedAt())
                 .updatedAt(blogPost.getUpdatedAt())
                 .isLikedByCurrentUser(isLikedByCurrentUser)
+                .authorProfileImage(blogPost.getUser().getProfileImage())
                 .build();
     }
     
@@ -335,6 +465,7 @@ public class BlogService {
                 .content(comment.getContent())
                 .userId(comment.getUser().getId())
                 .username(comment.getUser().getFullName())
+                .userProfileImage(comment.getUser().getProfileImage())
                 .blogPostId(comment.getBlogPost().getId())
                 .createdAt(comment.getCreatedAt())
                 .updatedAt(comment.getUpdatedAt())
