@@ -5,6 +5,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+import java.util.List;
+
 @Schema(description = "Request object for creating or updating a blog post")
 public record BlogPostRequest(
     @Schema(description = "Title of the blog post", required = true, example = "My First Blog Post")
@@ -24,52 +26,15 @@ public record BlogPostRequest(
     Long categoryId,
     
     @Schema(description = "Status of the blog post (DRAFT or PUBLISHED)", example = "DRAFT", defaultValue = "DRAFT")
-    BlogStatus status
+    BlogStatus status,
+    List<String> tags
 ) {
     public BlogPostRequest {
         if (status == null) {
             status = BlogStatus.DRAFT;
         }
     }
-    
-    public static BlogPostRequestBuilder builder() {
-        return new BlogPostRequestBuilder();
-    }
 
-    public static class BlogPostRequestBuilder {
-        private String title;
-        private String content;
-        private String featuredImage;
-        private Long categoryId;
-        private BlogStatus status = BlogStatus.DRAFT;
 
-        public BlogPostRequestBuilder title(String title) {
-            this.title = title;
-            return this;
-        }
 
-        public BlogPostRequestBuilder content(String content) {
-            this.content = content;
-            return this;
-        }
-
-        public BlogPostRequestBuilder featuredImage(String featuredImage) {
-            this.featuredImage = featuredImage;
-            return this;
-        }
-
-        public BlogPostRequestBuilder categoryId(Long categoryId) {
-            this.categoryId = categoryId;
-            return this;
-        }
-
-        public BlogPostRequestBuilder status(BlogStatus status) {
-            this.status = status;
-            return this;
-        }
-
-        public BlogPostRequest build() {
-            return new BlogPostRequest(title, content, featuredImage, categoryId, status);
-        }
-    }
 } 
