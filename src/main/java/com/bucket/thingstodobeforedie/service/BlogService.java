@@ -31,7 +31,7 @@ public class BlogService {
     private final CurrentUser currentUser;
     private final ViewTrackingService viewTrackingService;
     private final ActivityService activityService;
-    
+
     @Transactional
     public BlogPostDTO createBlogPost(BlogPostRequest request) {
 
@@ -39,6 +39,12 @@ public class BlogService {
         if (request.categoryId() != null) {
             category = categoryRepository.findById(request.categoryId())
                     .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+        }
+
+        String tags = null;
+
+        if (!request.tags().isEmpty()) {
+            tags = String.join(",", request.tags());
         }
 
         BlogPost blogPost = BlogPost.builder()
@@ -49,6 +55,7 @@ public class BlogService {
                 .user(currentUser.getUser())
                 .category(category)
                 .views(0L)
+                .tags(tags)
                 .build();
 
         blogPost = blogPostRepository.save(blogPost);
@@ -73,10 +80,10 @@ public class BlogService {
     public BlogPostDTO getBlogPostById(Long id) {
         BlogPost blogPost = blogPostRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Blog post not found"));
-        
+
         return mapToBlogPostDTO(blogPost);
     }
-    
+
     /**
      * Get blog post by ID and increment view count if conditions are met
      */
@@ -84,45 +91,45 @@ public class BlogService {
     public BlogPostDTO viewBlogPost(Long id, String viewerIdentifier) {
         BlogPost blogPost = blogPostRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Blog post not found"));
-        
+
         // Only allow viewing published posts unless the user is the author
-        if (blogPost.getStatus() == BlogStatus.DRAFT && 
-            (!blogPost.getUser().getId().equals(currentUser.getUser().getId()))) {
+        if (blogPost.getStatus() == BlogStatus.DRAFT &&
+                (!blogPost.getUser().getId().equals(currentUser.getUser().getId()))) {
             throw new UnauthorizedException("You don't have permission to view this draft blog post");
         }
-        
+
         // Only increment views if post is published and viewer hasn't viewed recently
         if (blogPost.getStatus() == BlogStatus.PUBLISHED) {
             // Check if the viewer has viewed this post recently
             boolean hasRecentView = viewTrackingService.hasRecentView(id, viewerIdentifier);
-            
+
             // If no recent view, increment and record
             if (!hasRecentView) {
                 incrementBlogViews(id);
                 viewTrackingService.recordView(id, viewerIdentifier);
             }
         }
-        
+
         return mapToBlogPostDTO(blogPost);
     }
-    
+
     /**
      * Helper method to get a blog post that's either published or owned by the current user
      */
     private BlogPost getPublishedOrOwnedBlogPost(Long id) {
         BlogPost blogPost = blogPostRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Blog post not found"));
-        
+
         // Only allow viewing published posts unless the user is the author
-        if (blogPost.getStatus() == BlogStatus.DRAFT && 
-            (!blogPost.getUser().getId().equals(currentUser.getUser().getId()))) {
+        if (blogPost.getStatus() == BlogStatus.DRAFT &&
+                (!blogPost.getUser().getId().equals(currentUser.getUser().getId()))) {
             throw new UnauthorizedException("You don't have permission to view this draft blog post");
         }
-        
+
         return blogPost;
     }
-    
-    public Page<BlogPostDTO> getAllBlogPosts(Pageable pageable,String status) {
+
+    public Page<BlogPostDTO> getAllBlogPosts(Pageable pageable, String status) {
         Page<BlogPost> blogPosts;
 
         if ("published".equalsIgnoreCase(status)) {
@@ -161,23 +168,28 @@ public class BlogService {
     public BlogPostDTO updateBlogPost(Long id, BlogPostRequest request) {
         // Get the blog post
         BlogPost blogPost = getPublishedOrOwnedBlogPost(id);
-        
+
         // Verify the current user is the author
         if (!blogPost.getUser().getId().equals(currentUser.getUser().getId())) {
             throw new UnauthorizedException("You don't have permission to update this blog post");
         }
-        
+
         // Update the blog post
         blogPost.setTitle(request.title());
         blogPost.setContent(request.content());
         blogPost.setFeaturedImage(request.featuredImage());
         blogPost.setStatus(request.status());
-        
+
         // Update category if provided
         if (request.categoryId() != null) {
             Category category = categoryRepository.findById(request.categoryId())
                     .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
             blogPost.setCategory(category);
+        }
+        // Update tags if provided
+        if (request.tags() != null && !request.tags().isEmpty()) {
+            String tags = String.join(",", request.tags());
+            blogPost.setTags(tags);
         }
 
         BlogPost updatedBlogPost = blogPostRepository.save(blogPost);
@@ -195,17 +207,17 @@ public class BlogService {
 
         return mapToBlogPostDTO(updatedBlogPost);
     }
-    
+
     @Transactional
     public void deleteBlogPost(Long id) {
         // Get the blog post
         BlogPost blogPost = getPublishedOrOwnedBlogPost(id);
-        
+
         // Verify the current user is the author
         if (!blogPost.getUser().getId().equals(currentUser.getUser().getId())) {
             throw new UnauthorizedException("You don't have permission to delete this blog post");
         }
-        
+
         // Delete the blog post
         blogPostRepository.delete(blogPost);
 
@@ -221,23 +233,23 @@ public class BlogService {
         );
 
     }
-    
+
     @Transactional
     public BlogPostDTO toggleBlogStatus(Long id, BlogStatus status) {
         // Get the blog post
         BlogPost blogPost = getPublishedOrOwnedBlogPost(id);
-        
+
         // Verify the current user is the author
         if (!blogPost.getUser().getId().equals(currentUser.getUser().getId())) {
             throw new UnauthorizedException("You don't have permission to update this blog post");
         }
-        
+
         // Update the status
         blogPost.setStatus(status);
 
         BlogPost updatedBlogPost = blogPostRepository.save(blogPost);
 
-        if(status.equals(BlogStatus.PUBLISHED)){
+        if (status.equals(BlogStatus.PUBLISHED)) {
             Map<String, Object> metadata = new HashMap<>();
             metadata.put("blogPostTitle", blogPost.getTitle());
 
@@ -249,21 +261,21 @@ public class BlogService {
                     metadata
             );
         }
-        
+
         return mapToBlogPostDTO(updatedBlogPost);
     }
-    
+
     @Transactional
     public BlogPostDTO toggleLike(Long blogId) {
         // Get the blog post
         BlogPost blogPost = getPublishedOrOwnedBlogPost(blogId);
-        
+
         // Get the current user
         User user = currentUser.getUser();
-        
+
         // Check if the user has already liked this post
         Optional<Like> existingLike = likeRepository.findByUserAndBlogPost(user, blogPost);
-        
+
         if (existingLike.isPresent()) {
             // Remove the like
             likeRepository.delete(existingLike.get());
@@ -299,20 +311,20 @@ public class BlogService {
                     metadata
             );
         }
-        
+
         return mapToBlogPostDTO(blogPost);
     }
-    
+
     @Transactional
     public CommentDTO addComment(Long blogId, CommentRequest request) {
         // Get the blog post
         BlogPost blogPost = getPublishedOrOwnedBlogPost(blogId);
-        
+
         // Only allow comments on published posts
         if (blogPost.getStatus() != BlogStatus.PUBLISHED) {
             throw new UnauthorizedException("Cannot comment on unpublished blog posts");
         }
-        
+
         // Create the comment
         Comment comment = new Comment();
         comment.setContent(request.content());
@@ -338,16 +350,16 @@ public class BlogService {
 
         return mapToCommentDTO(savedComment);
     }
-    
+
     @Transactional
     public CommentDTO updateComment(Long commentId, CommentRequest request) {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Comment not found"));
-                
+
         if (!comment.getUser().getId().equals(currentUser.getUser().getId())) {
             throw new UnauthorizedException("You don't have permission to update this comment");
         }
-        
+
         comment.setContent(request.content());
         comment = commentRepository.save(comment);
 
@@ -363,15 +375,15 @@ public class BlogService {
                 ActivityIcon.COMMENT_UPDATED,
                 metadata
         );
-        
+
         return mapToCommentDTO(comment);
     }
-    
+
     @Transactional
     public void deleteComment(Long commentId) {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Comment not found"));
-                
+
         if (!comment.getUser().getId().equals(currentUser.getUser().getId())) {
             throw new UnauthorizedException("You don't have permission to delete this comment");
         }
@@ -390,17 +402,17 @@ public class BlogService {
                 metadata
         );
     }
-    
+
     public Page<CommentDTO> getCommentsByBlogPost(Long blogId, Pageable pageable) {
         // Get the blog post to verify it exists and user has access
         BlogPost blogPost = getPublishedOrOwnedBlogPost(blogId);
-        
+
         // Get comments for this blog post
         Page<Comment> comments = commentRepository.findByBlogPostOrderByCreatedAtDesc(blogPost, pageable);
-        
+
         return comments.map(this::mapToCommentDTO);
     }
-    
+
     public Page<CommentDTO> getCommentsByUser(Long userId, Pageable pageable) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
@@ -412,12 +424,12 @@ public class BlogService {
     public void incrementBlogViews(Long blogId) {
         blogPostRepository.incrementViews(blogId);
     }
-    
+
     public Page<BlogPostDTO> getTrendingBlogs(Pageable pageable) {
         return blogPostRepository.findTrendingBlogs(BlogStatus.PUBLISHED, pageable)
                 .map(this::mapToBlogPostDTO);
     }
-    
+
     public List<BlogPostDTO> getTopTrendingBlogs() {
         return blogPostRepository.findTop5ByStatusOrderByViewsDesc(BlogStatus.PUBLISHED)
                 .stream()
@@ -430,15 +442,20 @@ public class BlogService {
                 .map(obj -> new CategoryCountDTO((String) obj[0], (Long) obj[1]))
                 .collect(Collectors.toList());
     }
+
     private BlogPostDTO mapToBlogPostDTO(BlogPost blogPost) {
         long likesCount = likeRepository.countByBlogPost(blogPost);
         long commentsCount = commentRepository.countByBlogPost(blogPost);
         boolean isLikedByCurrentUser = false;
-        
+
         if (currentUser != null) {
-                isLikedByCurrentUser = likeRepository.existsByUserAndBlogPost(currentUser.getUser(), blogPost);
+            isLikedByCurrentUser = likeRepository.existsByUserAndBlogPost(currentUser.getUser(), blogPost);
         }
-        
+
+        List<String> tagList = blogPost.getTags() != null ?
+                List.of(blogPost.getTags().split(",")) :
+                List.of();
+
         return BlogPostDTO.builder()
                 .id(blogPost.getId())
                 .title(blogPost.getTitle())
@@ -456,9 +473,10 @@ public class BlogService {
                 .updatedAt(blogPost.getUpdatedAt())
                 .isLikedByCurrentUser(isLikedByCurrentUser)
                 .authorProfileImage(blogPost.getUser().getProfileImage())
+                .tags(tagList)
                 .build();
     }
-    
+
     private CommentDTO mapToCommentDTO(Comment comment) {
         return CommentDTO.builder()
                 .id(comment.getId())
