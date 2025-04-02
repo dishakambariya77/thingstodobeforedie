@@ -1,10 +1,10 @@
 package com.bucket.thingstodobeforedie.controller;
 
 import com.bucket.thingstodobeforedie.dto.BucketListRequest;
-import com.bucket.thingstodobeforedie.dto.BucketListRecord;
+import com.bucket.thingstodobeforedie.dto.BucketListResponse;
 import com.bucket.thingstodobeforedie.dto.PagedResponse;
 import com.bucket.thingstodobeforedie.dto.BucketListItemRequest;
-import com.bucket.thingstodobeforedie.dto.BucketListItemRecord;
+import com.bucket.thingstodobeforedie.dto.BucketListItemResponse;
 import com.bucket.thingstodobeforedie.dto.ApiResponse;
 import com.bucket.thingstodobeforedie.service.BucketListService;
 import com.bucket.thingstodobeforedie.service.BucketListItemService;
@@ -26,8 +26,8 @@ public class BucketListController {
      * Create a new bucket list
      */
     @PostMapping
-    public ResponseEntity<ApiResponse<BucketListRecord>> createBucketList(@Valid @RequestBody BucketListRequest request) {
-        BucketListRecord bucketList = bucketListService.createBucketList(request);
+    public ResponseEntity<ApiResponse<BucketListResponse>> createBucketList(@Valid @RequestBody BucketListRequest request) {
+        BucketListResponse bucketList = bucketListService.createBucketList(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Bucket list created successfully", bucketList));
     }
@@ -36,8 +36,8 @@ public class BucketListController {
      * Get bucket list by id
      */
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<BucketListRecord>> getBucketListById(@PathVariable Long id) {
-        BucketListRecord bucketList = bucketListService.getBucketListById(id);
+    public ResponseEntity<ApiResponse<BucketListResponse>> getBucketListById(@PathVariable Long id) {
+        BucketListResponse bucketList = bucketListService.getBucketListById(id);
         return ResponseEntity.ok(ApiResponse.success(bucketList));
     }
 
@@ -45,10 +45,10 @@ public class BucketListController {
      * Get all bucket lists for current user with pagination
      */
     @GetMapping
-    public ResponseEntity<ApiResponse<PagedResponse<BucketListRecord>>> getBucketLists(
+    public ResponseEntity<ApiResponse<PagedResponse<BucketListResponse>>> getBucketLists(
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "10") int size) {
-        PagedResponse<BucketListRecord> response = bucketListService.getBucketLists(page, size);
+        PagedResponse<BucketListResponse> response = bucketListService.getBucketLists(page, size);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -56,11 +56,11 @@ public class BucketListController {
      * Get bucket lists by category
      */
     @GetMapping("/category/{categoryId}")
-    public ResponseEntity<ApiResponse<PagedResponse<BucketListRecord>>> getBucketListsByCategory(
+    public ResponseEntity<ApiResponse<PagedResponse<BucketListResponse>>> getBucketListsByCategory(
             @PathVariable Long categoryId,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "10") int size) {
-        PagedResponse<BucketListRecord> response = bucketListService.getBucketListsByCategory(categoryId, page, size);
+        PagedResponse<BucketListResponse> response = bucketListService.getBucketListsByCategory(categoryId, page, size);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -68,10 +68,10 @@ public class BucketListController {
      * Update bucket list
      */
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<BucketListRecord>> updateBucketList(
+    public ResponseEntity<ApiResponse<BucketListResponse>> updateBucketList(
             @PathVariable Long id,
             @Valid @RequestBody BucketListRequest request) {
-        BucketListRecord bucketList = bucketListService.updateBucketList(id, request);
+        BucketListResponse bucketList = bucketListService.updateBucketList(id, request);
         return ResponseEntity.ok(ApiResponse.success("Bucket list updated successfully", bucketList));
     }
 
@@ -88,11 +88,11 @@ public class BucketListController {
      * Get all items for a specific bucket list with pagination
      */
     @GetMapping("/{bucketListId}/items")
-    public ResponseEntity<ApiResponse<PagedResponse<BucketListItemRecord>>> getBucketListItems(
+    public ResponseEntity<ApiResponse<PagedResponse<BucketListItemResponse>>> getBucketListItems(
             @PathVariable Long bucketListId,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "10") int size) {
-        PagedResponse<BucketListItemRecord> response = bucketListItemService.getItemsByBucketListId(bucketListId, page, size);
+        PagedResponse<BucketListItemResponse> response = bucketListItemService.getItemsByBucketListId(bucketListId, page, size);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -100,10 +100,10 @@ public class BucketListController {
      * Add a new item to a bucket list
      */
     @PostMapping("/{bucketListId}/items")
-    public ResponseEntity<ApiResponse<BucketListItemRecord>> addBucketListItem(
+    public ResponseEntity<ApiResponse<BucketListItemResponse>> addBucketListItem(
             @PathVariable Long bucketListId,
             @Valid @RequestBody BucketListItemRequest request) {
-        BucketListItemRecord item = bucketListItemService.createBucketListItem(bucketListId, request);
+        BucketListItemResponse item = bucketListItemService.createBucketListItem(bucketListId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Item added to bucket list", item));
     }
@@ -112,10 +112,10 @@ public class BucketListController {
      * Toggle completion status of a bucket list item
      */
     @PutMapping("/{bucketListId}/items/{itemId}/toggle-completion")
-    public ResponseEntity<ApiResponse<BucketListRecord>> toggleItemCompletion(
+    public ResponseEntity<ApiResponse<BucketListResponse>> toggleItemCompletion(
             @PathVariable Long bucketListId,
             @PathVariable Long itemId) {
-        BucketListRecord item = bucketListService.toggleItemCompletion(bucketListId,itemId);
+        BucketListResponse item = bucketListService.toggleItemCompletion(bucketListId,itemId);
         return ResponseEntity.ok(ApiResponse.success("Item completion status toggled", item));
     }
 

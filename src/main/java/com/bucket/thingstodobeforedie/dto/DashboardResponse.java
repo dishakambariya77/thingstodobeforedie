@@ -5,12 +5,15 @@ import lombok.Builder;
 
 import java.util.List;
 
+/**
+ * Dashboard data with user statistics and information
+ */
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record DashboardDTO (
+public record DashboardResponse(
      long completedGoals,
      long inProgressGoals,
      long totalBlogPosts,
-     List<CategoryCountDTO> blogPostCategories ,
+     List<CategoryCount> blogPostCategories,
      List<?> currentGoals
-){}
+) {} 

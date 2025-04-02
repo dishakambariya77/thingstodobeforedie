@@ -36,7 +36,7 @@ public class BucketListService {
      * Create a new bucket list
      */
     @Transactional
-    public BucketListRecord createBucketList(BucketListRequest request) {
+    public BucketListResponse createBucketList(BucketListRequest request) {
         User user = currentUser.getUser();
         
         Category category = null;
@@ -95,7 +95,7 @@ public class BucketListService {
      * Get bucket list by id
      */
     @Transactional(readOnly = true)
-    public BucketListRecord getBucketListById(Long id) {
+    public BucketListResponse getBucketListById(Long id) {
         User user = currentUser.getUser();
         
         BucketList bucketList = bucketListRepository.findById(id)
@@ -113,7 +113,7 @@ public class BucketListService {
      * Get all bucket lists for current user with pagination
      */
     @Transactional(readOnly = true)
-    public PagedResponse<BucketListRecord> getBucketLists(int page, int size) {
+    public PagedResponse<BucketListResponse> getBucketLists(int page, int size) {
         User user = currentUser.getUser();
         
         validatePageNumberAndSize(page, size);
@@ -131,12 +131,12 @@ public class BucketListService {
                     bucketLists.isLast());
         }
         
-        List<BucketListRecord> bucketListRecords = bucketLists.getContent().stream()
+        List<BucketListResponse> bucketListResponses = bucketLists.getContent().stream()
                 .map(this::mapToRecord)
                 .collect(Collectors.toList());
         
         return new PagedResponse<>(
-                bucketListRecords, 
+                bucketListResponses,
                 bucketLists.getNumber(),
                 bucketLists.getSize(), 
                 bucketLists.getTotalElements(), 
@@ -148,7 +148,7 @@ public class BucketListService {
      * Get bucket lists by category
      */
     @Transactional(readOnly = true)
-    public PagedResponse<BucketListRecord> getBucketListsByCategory(Long categoryId, int page, int size) {
+    public PagedResponse<BucketListResponse> getBucketListsByCategory(Long categoryId, int page, int size) {
         User user = currentUser.getUser();
         
         validatePageNumberAndSize(page, size);
@@ -169,12 +169,12 @@ public class BucketListService {
                     bucketLists.isLast());
         }
         
-        List<BucketListRecord> bucketListRecords = bucketLists.getContent().stream()
+        List<BucketListResponse> bucketListResponses = bucketLists.getContent().stream()
                 .map(this::mapToRecord)
                 .collect(Collectors.toList());
         
         return new PagedResponse<>(
-                bucketListRecords, 
+                bucketListResponses,
                 bucketLists.getNumber(),
                 bucketLists.getSize(), 
                 bucketLists.getTotalElements(), 
@@ -186,7 +186,7 @@ public class BucketListService {
      * Update bucket list
      */
     @Transactional
-    public BucketListRecord updateBucketList(Long id, BucketListRequest request) {
+    public BucketListResponse updateBucketList(Long id, BucketListRequest request) {
         User user = currentUser.getUser();
 
         BucketList bucketList = bucketListRepository.findById(id)
@@ -307,7 +307,7 @@ public class BucketListService {
      * Toggle completion status of a bucket list item
      */
     @Transactional
-    public BucketListRecord toggleItemCompletion(Long bucketListId, Long itemId) {
+    public BucketListResponse toggleItemCompletion(Long bucketListId, Long itemId) {
         User user = currentUser.getUser();
 
         BucketListItem item = bucketListItemRepository.findById(itemId)
@@ -383,7 +383,7 @@ public class BucketListService {
     /**
      * Map BucketList entity to BucketListRecord DTO
      */
-    private BucketListRecord mapToRecord(BucketList bucketList) {
+    private BucketListResponse mapToRecord(BucketList bucketList) {
         // Count completed and total items
         int completedItemsCount = (int) bucketList.getBucketListItems().stream()
                 .filter(BucketListItem::isCompleted) // Count only completed items
@@ -394,27 +394,15 @@ public class BucketListService {
                 List.of();
 
         // Map category if exists
-        CategoryRecord categoryRecord = null;
-        if (bucketList.getCategory() != null) {
-            Category category = bucketList.getCategory();
-            categoryRecord = new CategoryRecord(
-                    category.getId(),
-                    category.getName(),
-                    category.getDescription(),
-                    category.getIconUrl(),
-                    category.getType(),
-                    category.getCreatedAt(),
-                    category.getUpdatedAt()
-            );
-        }
-        
+        CategoryResponse categoryResponse = getCategoryRecord(bucketList);
+
         // Get items for this bucket list
         List<BucketListItem> items = bucketList.getBucketListItems();
-        List<BucketListItemRecord> itemRecords = Collections.emptyList();
+        List<BucketListItemResponse> itemRecords = Collections.emptyList();
         
         if (items != null && !items.isEmpty()) {
             itemRecords = items.stream()
-                    .map(item -> BucketListItemRecord.builder()
+                    .map(item -> BucketListItemResponse.builder()
                             .id(item.getId())
                             .name(item.getName())
                             .description(item.getDescription())
@@ -435,7 +423,7 @@ public class BucketListService {
         int progressPercentage = totalItems > 0 ? (completedItemsCount * 100) / totalItems : 0;
 
         LocalDateTime bucketDeadlineTime = null;
-        if (!items.isEmpty()) {
+        if (items != null && !items.isEmpty()) {
             bucketDeadlineTime = items.stream()
                     .filter(item -> item.getDeadline() != null) // Exclude null deadlines
                     .max(Comparator.comparing(BucketListItem::getDeadline))
@@ -443,14 +431,14 @@ public class BucketListService {
                     .orElse(null);
         }
 
-        return new BucketListRecord(
+        return new BucketListResponse(
                 bucketList.getId(),
                 bucketList.getName(),
                 bucketList.getDescription(),
                 bucketList.getImageUrl(),
                 bucketList.getUser().getId(),
                 tagList,
-                categoryRecord,
+                categoryResponse,
                 itemRecords,
                 completedItemsCount,
                 totalItems,
@@ -459,6 +447,23 @@ public class BucketListService {
                 progressPercentage,
                 bucketDeadlineTime
         );
+    }
+
+    private static CategoryResponse getCategoryRecord(BucketList bucketList) {
+        CategoryResponse categoryResponse = null;
+        if (bucketList.getCategory() != null) {
+            Category category = bucketList.getCategory();
+            categoryResponse = new CategoryResponse(
+                    category.getId(),
+                    category.getName(),
+                    category.getDescription(),
+                    category.getIconUrl(),
+                    category.getType(),
+                    category.getCreatedAt(),
+                    category.getUpdatedAt()
+            );
+        }
+        return categoryResponse;
     }
 
     /**
@@ -486,7 +491,7 @@ public class BucketListService {
      * @return List of recent ongoing bucket list items
      */
     @Transactional(readOnly = true)
-    public List<BucketListRecord> getRecentOngoingBucketListItems(Long userId, int limit) {
+    public List<BucketListResponse> getRecentOngoingBucketListItems(Long userId, int limit) {
         User user = userService.getUserById(userId);
         
         Pageable pageable = PageRequest.of(0, limit, Sort.Direction.DESC, "createdAt");

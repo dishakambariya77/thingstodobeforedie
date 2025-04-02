@@ -3,14 +3,16 @@ package com.bucket.thingstodobeforedie.dto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
-import lombok.Data;
 
 import java.time.LocalDateTime;
 
+/**
+ * Comment response with author details
+ */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@Schema(description = "Comment data transfer object")
+@Schema(description = "Comment information")
 @Builder
-public record CommentDTO(
+public record CommentResponse(
     @Schema(description = "Unique identifier of the comment")
     Long id,
     
@@ -34,4 +36,4 @@ public record CommentDTO(
     
     @Schema(description = "Date and time when the comment was last updated")
     LocalDateTime updatedAt
-){}
+) {} 

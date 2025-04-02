@@ -1,12 +1,10 @@
 package com.bucket.thingstodobeforedie.entity;
 
+import com.bucket.thingstodobeforedie.enums.Role;
+import com.bucket.thingstodobeforedie.enums.SocialProvider;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -56,9 +54,18 @@ public class User extends BaseEntity implements UserDetails {
     @Column(name = "social_links")
     private String socialLinks;
     
+    @Column(name = "provider")
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private SocialProvider provider = SocialProvider.LOCAL;
+    
+    @Column(name = "provider_id")
+    private String providerId;
+    
     @ElementCollection
     @CollectionTable(name = "user_interests", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "interest")
+    @Builder.Default
     private List<String> interests = new ArrayList<>();
     
     @Column(name = "last_active")

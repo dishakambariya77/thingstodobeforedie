@@ -8,10 +8,13 @@ import lombok.Builder;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Blog post response data
+ */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@Schema(description = "Blog post data transfer object")
+@Schema(description = "Blog post information")
 @Builder
-public record BlogPostDTO(
+public record BlogPostResponse(
         @Schema(description = "Unique identifier of the blog post")
         Long id,
 
@@ -59,6 +62,6 @@ public record BlogPostDTO(
 
         @Schema(description = "Whether the current user has liked this blog post")
         Boolean isLikedByCurrentUser,
+        
         List<String> tags
-) {
-} 
+) {} 

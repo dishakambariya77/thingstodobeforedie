@@ -1,6 +1,6 @@
 package com.bucket.thingstodobeforedie.controller;
 
-import com.bucket.thingstodobeforedie.dto.DashboardDTO;
+import com.bucket.thingstodobeforedie.dto.DashboardResponse;
 import com.bucket.thingstodobeforedie.service.DashboardService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -25,11 +25,11 @@ public class DashboardController {
     @Operation(summary = "Get dashboard data", description = "Retrieves dashboard data including counts and recent items")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Successfully retrieved dashboard data", 
-            content = @Content(schema = @Schema(implementation = DashboardDTO.class))),
+            content = @Content(schema = @Schema(implementation = DashboardResponse.class))),
         @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
     @GetMapping
-    public ResponseEntity<DashboardDTO> getDashboardData() {
+    public ResponseEntity<DashboardResponse> getDashboardData() {
         return ResponseEntity.ok(dashboardService.getDashboardData());
     }
 } 

@@ -15,6 +15,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -89,7 +90,7 @@ public class UserService {
                 .website(user.getWebsite())
                 .socialLinks(user.getSocialLinks())
                 .interests(user.getInterests())
-                .activities(recentActivities)
+                .recentActivities(recentActivities)
                 .profileCompletionPercentage(profileCompletionPercentage)
                 .achievements(achievements)
                 .build();
@@ -211,33 +212,33 @@ public class UserService {
     public UserProfileResponse updateCurrentUserProfile(UserProfileUpdateRequest request) {
         User currentUser = getCurrentUser();
 
-        // Update only the provided fields
-        if (request.getFullName() != null) {
-            currentUser.setFullName(request.getFullName());
+        // Update fields from the request (only if not null)
+        if (StringUtils.hasText(request.fullName()) && !request.fullName().equals(currentUser.getFullName())) {
+            currentUser.setFullName(request.fullName());
         }
-
-        if (request.getBio() != null) {
-            currentUser.setBio(request.getBio());
+        
+        if (StringUtils.hasText(request.bio()) && !request.bio().equals(currentUser.getBio())) {
+            currentUser.setBio(request.bio());
         }
-
-        if (request.getProfileImage() != null) {
-            currentUser.setProfileImage(request.getProfileImage());
+        
+        if (StringUtils.hasText(request.profileImage()) && !request.profileImage().equals(currentUser.getProfileImage())) {
+            currentUser.setProfileImage(request.profileImage());
         }
-
-        if (request.getLocation() != null) {
-            currentUser.setLocation(request.getLocation());
+        
+        if (StringUtils.hasText(request.location()) && !request.location().equals(currentUser.getLocation())) {
+            currentUser.setLocation(request.location());
         }
-
-        if (request.getWebsite() != null) {
-            currentUser.setWebsite(request.getWebsite());
+        
+        if (StringUtils.hasText(request.website()) && !request.website().equals(currentUser.getWebsite())) {
+            currentUser.setWebsite(request.website());
         }
-
-        if (request.getSocialLinks() != null) {
-            currentUser.setSocialLinks(request.getSocialLinks());
+        
+        if (StringUtils.hasText(request.socialLinks()) && !request.socialLinks().equals(currentUser.getSocialLinks())) {
+            currentUser.setSocialLinks(request.socialLinks());
         }
-
-        if (request.getInterests() != null) {
-            currentUser.setInterests(request.getInterests());
+        
+        if (request.interests() != null && !request.interests().equals(currentUser.getInterests())) {
+            currentUser.setInterests(request.interests());
         }
 
         // Update last active timestamp

@@ -1,18 +1,12 @@
 package com.bucket.thingstodobeforedie.dto;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 /**
- * Response DTO for image uploads
+ * Response for image uploads
  */
-@Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class ImageUploadResponse {
-    private String imageUrl;
-    private String message;
-} 
+public record ImageUploadResponse(
+    String imageUrl,
+    String message
+) {} 

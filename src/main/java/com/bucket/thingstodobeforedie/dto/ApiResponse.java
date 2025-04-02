@@ -2,10 +2,7 @@ package com.bucket.thingstodobeforedie.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import org.springframework.http.HttpStatus;
 
 import java.time.LocalDateTime;
@@ -13,20 +10,17 @@ import java.time.LocalDateTime;
 /**
  * Standard API response format for all endpoints
  */
-@Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ApiResponse<T> {
-    private boolean success;
-    private String message;
-    private T data;
-    private ApiError error;
+public record ApiResponse<T>(
+    boolean success,
+    String message,
+    T data,
+    ApiError error,
     
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime timestamp;
-    
+    LocalDateTime timestamp
+) {
     /**
      * Create a success response
      */
@@ -76,12 +70,9 @@ public class ApiResponse<T> {
     /**
      * Error details
      */
-    @Data
     @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class ApiError {
-        private int status;
-        private String message;
-    }
+    public record ApiError(
+        int status,
+        String message
+    ) {}
 } 

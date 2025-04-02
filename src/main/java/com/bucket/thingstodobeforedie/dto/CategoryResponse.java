@@ -4,10 +4,7 @@ import com.bucket.thingstodobeforedie.entity.CategoryType;
 
 import java.time.LocalDateTime;
 
-/**
- * DTO for Category entity
- */
-public record CategoryRecord(
+public record CategoryResponse(
     Long id,
     String name,
     String description,

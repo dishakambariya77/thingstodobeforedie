@@ -1,20 +1,20 @@
 package com.bucket.thingstodobeforedie.dto;
 
+import lombok.Builder;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * DTO for BucketList entity
- */
-public record BucketListRecord(
+@Builder
+public record BucketListResponse(
     Long id,
     String name,
     String description,
     String imageUrl,
     Long userId,
     List<String> tags,
-    CategoryRecord category,
-    List<BucketListItemRecord> bucketItems,
+    CategoryResponse category,
+    List<BucketListItemResponse> bucketItems,
     int completedItems,
     int totalItems,
     LocalDateTime createdAt,

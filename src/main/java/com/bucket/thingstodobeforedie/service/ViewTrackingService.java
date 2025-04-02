@@ -40,11 +40,7 @@ public class ViewTrackingService {
         }
         
         // If record exists and hasn't expired
-        if (viewTime != null && viewTime.plusHours(VIEW_TTL_HOURS).isAfter(LocalDateTime.now())) {
-            return true;
-        }
-        
-        return false;
+        return viewTime != null && viewTime.plusHours(VIEW_TTL_HOURS).isAfter(LocalDateTime.now());
     }
     
     /**
