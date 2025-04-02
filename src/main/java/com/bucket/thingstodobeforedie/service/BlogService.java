@@ -33,7 +33,7 @@ public class BlogService {
     private final ActivityService activityService;
 
     @Transactional
-    public BlogPostDTO createBlogPost(BlogPostRequest request) {
+    public BlogPostResponse createBlogPost(BlogPostRequest request) {
 
         Category category = null;
         if (request.categoryId() != null) {
@@ -70,25 +70,25 @@ public class BlogService {
                 ActivityIcon.BLOG_POST_CREATED,
                 metadata
         );
-        return mapToBlogPostDTO(blogPost);
+        return mapToBlogPostResponse(blogPost);
     }
 
     /**
      * Get blog post by ID without incrementing view count
      */
     @Transactional
-    public BlogPostDTO getBlogPostById(Long id) {
+    public BlogPostResponse getBlogPostById(Long id) {
         BlogPost blogPost = blogPostRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Blog post not found"));
 
-        return mapToBlogPostDTO(blogPost);
+        return mapToBlogPostResponse(blogPost);
     }
 
     /**
      * Get blog post by ID and increment view count if conditions are met
      */
     @Transactional
-    public BlogPostDTO viewBlogPost(Long id, String viewerIdentifier) {
+    public BlogPostResponse viewBlogPost(Long id, String viewerIdentifier) {
         BlogPost blogPost = blogPostRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Blog post not found"));
 
@@ -110,7 +110,7 @@ public class BlogService {
             }
         }
 
-        return mapToBlogPostDTO(blogPost);
+        return mapToBlogPostResponse(blogPost);
     }
 
     /**
@@ -129,43 +129,38 @@ public class BlogService {
         return blogPost;
     }
 
-    public Page<BlogPostDTO> getAllBlogPosts(Pageable pageable, String status) {
+    public Page<BlogPostResponse> getAllBlogPosts(Long userId, Pageable pageable, String status) {
         Page<BlogPost> blogPosts;
 
-        if ("published".equalsIgnoreCase(status)) {
-            blogPosts = blogPostRepository.findByStatusOrderByCreatedAtDesc(BlogStatus.PUBLISHED, pageable);
-        } else if ("draft".equalsIgnoreCase(status)) {
-            blogPosts = blogPostRepository.findByStatusOrderByCreatedAtDesc(BlogStatus.DRAFT, pageable);
-        } else {
-            blogPosts = blogPostRepository.findAllByOrderByCreatedAtDesc(pageable);
-        }
-
-        return blogPosts.map(this::mapToBlogPostDTO);
-    }
-
-    public Page<BlogPostDTO> getBlogPostsByUser(Long userId, Pageable pageable) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        return blogPostRepository.findByUserOrderByCreatedAtDesc(user, pageable)
-                .map(this::mapToBlogPostDTO);
+        if ("published".equalsIgnoreCase(status)) {
+            blogPosts = blogPostRepository.findByUserAndStatusOrderByCreatedAtDesc(user,BlogStatus.PUBLISHED, pageable);
+        } else if ("draft".equalsIgnoreCase(status)) {
+            blogPosts = blogPostRepository.findByUserAndStatusOrderByCreatedAtDesc(user,BlogStatus.DRAFT, pageable);
+        } else {
+            blogPosts = blogPostRepository.findByUserOrderByCreatedAtDesc(user,pageable);
+        }
+
+        return blogPosts.map(this::mapToBlogPostResponse);
     }
 
-    public Page<BlogPostDTO> getBlogPostsByCategory(Long categoryId, Pageable pageable) {
+    public Page<BlogPostResponse> getBlogPostsByCategory(Long categoryId, Pageable pageable) {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
         return blogPostRepository.findByCategoryOrderByCreatedAtDesc(category, pageable)
-                .map(this::mapToBlogPostDTO);
+                .map(this::mapToBlogPostResponse);
     }
 
-    public Page<BlogPostDTO> searchBlogPosts(String searchTerm, Pageable pageable) {
+    public Page<BlogPostResponse> searchBlogPosts(String searchTerm, Pageable pageable) {
         return blogPostRepository.searchBlogPosts(searchTerm, pageable)
-                .map(this::mapToBlogPostDTO);
+                .map(this::mapToBlogPostResponse);
     }
 
     @Transactional
-    public BlogPostDTO updateBlogPost(Long id, BlogPostRequest request) {
+    public BlogPostResponse updateBlogPost(Long id, BlogPostRequest request) {
         // Get the blog post
         BlogPost blogPost = getPublishedOrOwnedBlogPost(id);
 
@@ -179,17 +174,16 @@ public class BlogService {
         blogPost.setContent(request.content());
         blogPost.setFeaturedImage(request.featuredImage());
         blogPost.setStatus(request.status());
+        blogPost.setUpdatedAt(LocalDateTime.now());
+        blogPost.setTags(request.tags() != null ? String.join(",", request.tags()) : null);
 
         // Update category if provided
         if (request.categoryId() != null) {
             Category category = categoryRepository.findById(request.categoryId())
                     .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
             blogPost.setCategory(category);
-        }
-        // Update tags if provided
-        if (request.tags() != null && !request.tags().isEmpty()) {
-            String tags = String.join(",", request.tags());
-            blogPost.setTags(tags);
+        } else {
+            blogPost.setCategory(null);
         }
 
         BlogPost updatedBlogPost = blogPostRepository.save(blogPost);
@@ -205,7 +199,7 @@ public class BlogService {
                 metadata
         );
 
-        return mapToBlogPostDTO(updatedBlogPost);
+        return mapToBlogPostResponse(updatedBlogPost);
     }
 
     @Transactional
@@ -235,7 +229,7 @@ public class BlogService {
     }
 
     @Transactional
-    public BlogPostDTO toggleBlogStatus(Long id, BlogStatus status) {
+    public BlogPostResponse toggleBlogStatus(Long id, BlogStatus status) {
         // Get the blog post
         BlogPost blogPost = getPublishedOrOwnedBlogPost(id);
 
@@ -262,11 +256,11 @@ public class BlogService {
             );
         }
 
-        return mapToBlogPostDTO(updatedBlogPost);
+        return mapToBlogPostResponse(updatedBlogPost);
     }
 
     @Transactional
-    public BlogPostDTO toggleLike(Long blogId) {
+    public BlogPostResponse toggleLike(Long blogId) {
         // Get the blog post
         BlogPost blogPost = getPublishedOrOwnedBlogPost(blogId);
 
@@ -312,11 +306,11 @@ public class BlogService {
             );
         }
 
-        return mapToBlogPostDTO(blogPost);
+        return mapToBlogPostResponse(blogPost);
     }
 
     @Transactional
-    public CommentDTO addComment(Long blogId, CommentRequest request) {
+    public CommentResponse addComment(Long blogId, CommentRequest request) {
         // Get the blog post
         BlogPost blogPost = getPublishedOrOwnedBlogPost(blogId);
 
@@ -347,12 +341,11 @@ public class BlogService {
                 metadata
         );
 
-
-        return mapToCommentDTO(savedComment);
+        return mapToCommentResponse(savedComment);
     }
 
     @Transactional
-    public CommentDTO updateComment(Long commentId, CommentRequest request) {
+    public CommentResponse updateComment(Long commentId, CommentRequest request) {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Comment not found"));
 
@@ -376,7 +369,7 @@ public class BlogService {
                 metadata
         );
 
-        return mapToCommentDTO(comment);
+        return mapToCommentResponse(comment);
     }
 
     @Transactional
@@ -403,21 +396,21 @@ public class BlogService {
         );
     }
 
-    public Page<CommentDTO> getCommentsByBlogPost(Long blogId, Pageable pageable) {
+    public Page<CommentResponse> getCommentsByBlogPost(Long blogId, Pageable pageable) {
         // Get the blog post to verify it exists and user has access
         BlogPost blogPost = getPublishedOrOwnedBlogPost(blogId);
 
         // Get comments for this blog post
         Page<Comment> comments = commentRepository.findByBlogPostOrderByCreatedAtDesc(blogPost, pageable);
 
-        return comments.map(this::mapToCommentDTO);
+        return comments.map(this::mapToCommentResponse);
     }
 
-    public Page<CommentDTO> getCommentsByUser(Long userId, Pageable pageable) {
+    public Page<CommentResponse> getCommentsByUser(Long userId, Pageable pageable) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         return commentRepository.findByUserOrderByCreatedAtDesc(user, pageable)
-                .map(this::mapToCommentDTO);
+                .map(this::mapToCommentResponse);
     }
 
     @Transactional
@@ -425,25 +418,25 @@ public class BlogService {
         blogPostRepository.incrementViews(blogId);
     }
 
-    public Page<BlogPostDTO> getTrendingBlogs(Pageable pageable) {
+    public Page<BlogPostResponse> getTrendingBlogs(Pageable pageable) {
         return blogPostRepository.findTrendingBlogs(BlogStatus.PUBLISHED, pageable)
-                .map(this::mapToBlogPostDTO);
+                .map(this::mapToBlogPostResponse);
     }
 
-    public List<BlogPostDTO> getTopTrendingBlogs() {
+    public List<BlogPostResponse> getTopTrendingBlogs() {
         return blogPostRepository.findTop5ByStatusOrderByViewsDesc(BlogStatus.PUBLISHED)
                 .stream()
-                .map(this::mapToBlogPostDTO)
+                .map(this::mapToBlogPostResponse)
                 .toList();
     }
 
-    public List<CategoryCountDTO> getCategoryWiseBlogCount() {
+    public List<CategoryCount> getCategoryWiseBlogCount() {
         return blogPostRepository.getCategoryWiseBlogCount().stream()
-                .map(obj -> new CategoryCountDTO((String) obj[0], (Long) obj[1]))
+                .map(obj -> new CategoryCount((String) obj[0], (Long) obj[1]))
                 .collect(Collectors.toList());
     }
 
-    private BlogPostDTO mapToBlogPostDTO(BlogPost blogPost) {
+    private BlogPostResponse mapToBlogPostResponse(BlogPost blogPost) {
         long likesCount = likeRepository.countByBlogPost(blogPost);
         long commentsCount = commentRepository.countByBlogPost(blogPost);
         boolean isLikedByCurrentUser = false;
@@ -456,7 +449,7 @@ public class BlogService {
                 List.of(blogPost.getTags().split(",")) :
                 List.of();
 
-        return BlogPostDTO.builder()
+        return BlogPostResponse.builder()
                 .id(blogPost.getId())
                 .title(blogPost.getTitle())
                 .content(blogPost.getContent())
@@ -477,8 +470,8 @@ public class BlogService {
                 .build();
     }
 
-    private CommentDTO mapToCommentDTO(Comment comment) {
-        return CommentDTO.builder()
+    private CommentResponse mapToCommentResponse(Comment comment) {
+        return CommentResponse.builder()
                 .id(comment.getId())
                 .content(comment.getContent())
                 .userId(comment.getUser().getId())

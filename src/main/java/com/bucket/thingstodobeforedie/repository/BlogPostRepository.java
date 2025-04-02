@@ -15,9 +15,7 @@ import java.util.List;
 
 @Repository
 public interface BlogPostRepository extends JpaRepository<BlogPost, Long> {
-    
-    Page<BlogPost> findAllByOrderByCreatedAtDesc(Pageable pageable);
-    
+
     Page<BlogPost> findByUserOrderByCreatedAtDesc(User user, Pageable pageable);
     
     Page<BlogPost> findByCategoryOrderByCreatedAtDesc(Category category, Pageable pageable);
@@ -29,9 +27,7 @@ public interface BlogPostRepository extends JpaRepository<BlogPost, Long> {
 
     
     // New methods for trending blogs
-    
-    Page<BlogPost> findByStatusOrderByCreatedAtDesc(BlogStatus status, Pageable pageable);
-    
+
     @Modifying
     @Query("UPDATE BlogPost b SET b.views = b.views + 1 WHERE b.id = :blogId")
     void incrementViews(Long blogId);
@@ -48,4 +44,6 @@ public interface BlogPostRepository extends JpaRepository<BlogPost, Long> {
      * Count blog posts by user ID
      */
     long countByUserId(Long userId);
+
+    Page<BlogPost> findByUserAndStatusOrderByCreatedAtDesc(User user, BlogStatus blogStatus, Pageable pageable);
 } 

@@ -16,6 +16,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -35,13 +37,13 @@ public class BlogController {
     @Operation(summary = "Create a new blog post", description = "Creates a new blog post with the provided data")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "201", description = "Blog post created successfully", 
-            content = @Content(schema = @Schema(implementation = BlogPostDTO.class))),
+            content = @Content(schema = @Schema(implementation = BlogPostResponse.class))),
         @ApiResponse(responseCode = "400", description = "Invalid input",
             content = @Content(schema = @Schema(ref = "#/components/schemas/ApiResponseMapStringString"))),
         @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
     @PostMapping
-    public ResponseEntity<BlogPostDTO> createBlogPost(
+    public ResponseEntity<BlogPostResponse> createBlogPost(
             @Valid @RequestBody BlogPostRequest request) {
         return new ResponseEntity<>(blogService.createBlogPost(request), HttpStatus.CREATED);
     }
@@ -49,12 +51,12 @@ public class BlogController {
     @Operation(summary = "Get a blog post by ID", description = "Returns a blog post based on the provided ID")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Blog post found", 
-            content = @Content(schema = @Schema(implementation = BlogPostDTO.class))),
+            content = @Content(schema = @Schema(implementation = BlogPostResponse.class))),
         @ApiResponse(responseCode = "404", description = "Blog post not found"),
         @ApiResponse(responseCode = "403", description = "Forbidden to view draft post")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<BlogPostDTO> getBlogPostById(
+    public ResponseEntity<BlogPostResponse> getBlogPostById(
             @Parameter(description = "ID of the blog post to retrieve") @PathVariable Long id,
             HttpServletRequest request) {
         // Generate a unique viewer identifier using session ID and IP address
@@ -94,24 +96,13 @@ public class BlogController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Successful operation")
     })
-    @GetMapping
-    public ResponseEntity<Page<BlogPostDTO>> getAllBlogPosts(
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<Page<BlogPostResponse>> getAllBlogPosts(
+            @Parameter(description = "ID of the user") @PathVariable Long userId,
             @Parameter(description = "Pagination parameters") Pageable pageable,
             @Parameter(description = "Filter by blog post status (published, draft, or all)")
             @RequestParam(required = false, defaultValue = "all") String status) {
-        return ResponseEntity.ok(blogService.getAllBlogPosts(pageable,status));
-    }
-
-    @Operation(summary = "Get blog posts by user", description = "Returns blog posts created by a specific user")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successful operation"),
-        @ApiResponse(responseCode = "404", description = "User not found")
-    })
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<Page<BlogPostDTO>> getBlogPostsByUser(
-            @Parameter(description = "ID of the user") @PathVariable Long userId,
-            @Parameter(description = "Pagination parameters") Pageable pageable) {
-        return ResponseEntity.ok(blogService.getBlogPostsByUser(userId, pageable));
+        return ResponseEntity.ok(blogService.getAllBlogPosts(userId,pageable,status));
     }
 
     @Operation(summary = "Get blog posts by category", description = "Returns blog posts belonging to a specific category")
@@ -120,7 +111,7 @@ public class BlogController {
         @ApiResponse(responseCode = "404", description = "Category not found")
     })
     @GetMapping("/category/{categoryId}")
-    public ResponseEntity<Page<BlogPostDTO>> getBlogPostsByCategory(
+    public ResponseEntity<Page<BlogPostResponse>> getBlogPostsByCategory(
             @Parameter(description = "ID of the category") @PathVariable Long categoryId,
             @Parameter(description = "Pagination parameters") Pageable pageable) {
         return ResponseEntity.ok(blogService.getBlogPostsByCategory(categoryId, pageable));
@@ -131,7 +122,7 @@ public class BlogController {
         @ApiResponse(responseCode = "200", description = "Successful operation")
     })
     @GetMapping("/search")
-    public ResponseEntity<Page<BlogPostDTO>> searchBlogPosts(
+    public ResponseEntity<Page<BlogPostResponse>> searchBlogPosts(
             @Parameter(description = "Search query string") @RequestParam String query,
             @Parameter(description = "Pagination parameters") Pageable pageable) {
         return ResponseEntity.ok(blogService.searchBlogPosts(query, pageable));
@@ -142,7 +133,7 @@ public class BlogController {
         @ApiResponse(responseCode = "200", description = "Successful operation")
     })
     @GetMapping("/trending")
-    public ResponseEntity<Page<BlogPostDTO>> getTrendingBlogs(
+    public ResponseEntity<Page<BlogPostResponse>> getTrendingBlogs(
             @Parameter(description = "Pagination parameters") Pageable pageable) {
         return ResponseEntity.ok(blogService.getTrendingBlogs(pageable));
     }
@@ -152,20 +143,20 @@ public class BlogController {
         @ApiResponse(responseCode = "200", description = "Successful operation")
     })
     @GetMapping("/trending/top")
-    public ResponseEntity<List<BlogPostDTO>> getTopTrendingBlogs() {
+    public ResponseEntity<List<BlogPostResponse>> getTopTrendingBlogs() {
         return ResponseEntity.ok(blogService.getTopTrendingBlogs());
     }
 
     @Operation(summary = "Update a blog post", description = "Updates an existing blog post with the provided data")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Blog post updated successfully", 
-            content = @Content(schema = @Schema(implementation = BlogPostDTO.class))),
+            content = @Content(schema = @Schema(implementation = BlogPostResponse.class))),
         @ApiResponse(responseCode = "400", description = "Invalid input"),
         @ApiResponse(responseCode = "404", description = "Blog post not found"),
         @ApiResponse(responseCode = "403", description = "Forbidden - not the author of the post")
     })
     @PutMapping("/{id}")
-    public ResponseEntity<BlogPostDTO> updateBlogPost(
+    public ResponseEntity<BlogPostResponse> updateBlogPost(
             @Parameter(description = "ID of the blog post to update") @PathVariable Long id,
             @Valid @RequestBody BlogPostRequest request) {
         return ResponseEntity.ok(blogService.updateBlogPost(id, request));
@@ -187,12 +178,12 @@ public class BlogController {
     @Operation(summary = "Update blog post status", description = "Changes the status of a blog post (draft/published)")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Blog post status updated successfully", 
-            content = @Content(schema = @Schema(implementation = BlogPostDTO.class))),
+            content = @Content(schema = @Schema(implementation = BlogPostResponse.class))),
         @ApiResponse(responseCode = "404", description = "Blog post not found"),
         @ApiResponse(responseCode = "403", description = "Forbidden - not the author of the post")
     })
     @PatchMapping("/{id}/status")
-    public ResponseEntity<BlogPostDTO> updateBlogStatus(
+    public ResponseEntity<BlogPostResponse> updateBlogStatus(
             @Parameter(description = "ID of the blog post") @PathVariable Long id,
             @Parameter(description = "New status (DRAFT or PUBLISHED)") @RequestParam BlogStatus status) {
         return ResponseEntity.ok(blogService.toggleBlogStatus(id, status));
@@ -201,11 +192,11 @@ public class BlogController {
     @Operation(summary = "Toggle like on a blog post", description = "Likes or unlikes a blog post for the current user")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Like toggled successfully", 
-            content = @Content(schema = @Schema(implementation = BlogPostDTO.class))),
+            content = @Content(schema = @Schema(implementation = BlogPostResponse.class))),
         @ApiResponse(responseCode = "404", description = "Blog post not found")
     })
     @PostMapping("/{id}/like")
-    public ResponseEntity<BlogPostDTO> toggleLike(
+    public ResponseEntity<BlogPostResponse> toggleLike(
             @Parameter(description = "ID of the blog post") @PathVariable Long id) {
         return ResponseEntity.ok(blogService.toggleLike(id));
     }
@@ -215,13 +206,13 @@ public class BlogController {
     @Operation(summary = "Add a comment to a blog post", description = "Creates a new comment on a blog post")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "201", description = "Comment created successfully", 
-            content = @Content(schema = @Schema(implementation = CommentDTO.class))),
+            content = @Content(schema = @Schema(implementation = CommentResponse.class))),
         @ApiResponse(responseCode = "400", description = "Invalid input"),
         @ApiResponse(responseCode = "404", description = "Blog post not found"),
         @ApiResponse(responseCode = "403", description = "Cannot comment on unpublished blog post")
     })
     @PostMapping("/{blogId}/comments")
-    public ResponseEntity<CommentDTO> addComment(
+    public ResponseEntity<CommentResponse> addComment(
             @Parameter(description = "ID of the blog post") @PathVariable Long blogId,
             @Valid @RequestBody CommentRequest request) {
         return new ResponseEntity<>(blogService.addComment(blogId, request), HttpStatus.CREATED);
@@ -233,7 +224,7 @@ public class BlogController {
         @ApiResponse(responseCode = "404", description = "Blog post not found")
     })
     @GetMapping("/{blogId}/comments")
-    public ResponseEntity<Page<CommentDTO>> getBlogComments(
+    public ResponseEntity<Page<CommentResponse>> getBlogComments(
             @Parameter(description = "ID of the blog post") @PathVariable Long blogId,
             @Parameter(description = "Pagination parameters") Pageable pageable) {
         return ResponseEntity.ok(blogService.getCommentsByBlogPost(blogId, pageable));
@@ -242,13 +233,13 @@ public class BlogController {
     @Operation(summary = "Update a comment", description = "Updates an existing comment")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Comment updated successfully", 
-            content = @Content(schema = @Schema(implementation = CommentDTO.class))),
+            content = @Content(schema = @Schema(implementation = CommentResponse.class))),
         @ApiResponse(responseCode = "400", description = "Invalid input"),
         @ApiResponse(responseCode = "404", description = "Comment not found"),
         @ApiResponse(responseCode = "403", description = "Forbidden - not the author of the comment")
     })
     @PutMapping("/comments/{commentId}")
-    public ResponseEntity<CommentDTO> updateComment(
+    public ResponseEntity<CommentResponse> updateComment(
             @Parameter(description = "ID of the comment to update") @PathVariable Long commentId,
             @Valid @RequestBody CommentRequest request) {
         return ResponseEntity.ok(blogService.updateComment(commentId, request));
@@ -273,14 +264,15 @@ public class BlogController {
         @ApiResponse(responseCode = "404", description = "User not found")
     })
     @GetMapping("/users/{userId}/comments")
-    public ResponseEntity<Page<CommentDTO>> getUserComments(
+    public ResponseEntity<Page<CommentResponse>> getUserComments(
             @Parameter(description = "ID of the user") @PathVariable Long userId,
             @Parameter(description = "Pagination parameters") Pageable pageable) {
         return ResponseEntity.ok(blogService.getCommentsByUser(userId, pageable));
     }
 
     @GetMapping("/categories/count")
-    public List<CategoryCountDTO> getCategoryWiseBlogCount() {
+    @Operation(summary = "Get category-wise blog post counts")
+    public List<CategoryCount> getCategoryWiseBlogCount() {
         return blogService.getCategoryWiseBlogCount();
     }
 } 

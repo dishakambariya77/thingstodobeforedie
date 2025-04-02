@@ -26,9 +26,11 @@ public class BlogPost extends BaseEntity {
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private BlogStatus status = BlogStatus.DRAFT;
     
     @Column(nullable = false, columnDefinition = "bigint default 0")
+    @Builder.Default
     private Long views = 0L;
 
     @ManyToOne(fetch = FetchType.LAZY)

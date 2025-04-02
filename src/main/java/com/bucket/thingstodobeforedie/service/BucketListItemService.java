@@ -1,6 +1,6 @@
 package com.bucket.thingstodobeforedie.service;
 
-import com.bucket.thingstodobeforedie.dto.BucketListItemRecord;
+import com.bucket.thingstodobeforedie.dto.BucketListItemResponse;
 import com.bucket.thingstodobeforedie.dto.BucketListItemRequest;
 import com.bucket.thingstodobeforedie.dto.PagedResponse;
 import com.bucket.thingstodobeforedie.entity.BucketList;
@@ -31,7 +31,7 @@ public class BucketListItemService {
     /**
      * Create a new bucket list item
      */
-    public BucketListItemRecord createBucketListItem(Long bucketListId, BucketListItemRequest request) {
+    public BucketListItemResponse createBucketListItem(Long bucketListId, BucketListItemRequest request) {
         User user = currentUser.getUser();
 
         // Find the bucket list and verify it belongs to the current user
@@ -60,7 +60,7 @@ public class BucketListItemService {
     /**
      * Get bucket list item by id
      */
-    public BucketListItemRecord getBucketListItemById(Long id) {
+    public BucketListItemResponse getBucketListItemById(Long id) {
         User user = currentUser.getUser();
         
         BucketListItem item = bucketListItemRepository.findById(id)
@@ -77,7 +77,7 @@ public class BucketListItemService {
     /**
      * Get all items for a specific bucket list with pagination
      */
-    public PagedResponse<BucketListItemRecord> getItemsByBucketListId(Long bucketListId, int page, int size) {
+    public PagedResponse<BucketListItemResponse> getItemsByBucketListId(Long bucketListId, int page, int size) {
         validatePageNumberAndSize(page, size);
         User user = currentUser.getUser();
         
@@ -99,7 +99,7 @@ public class BucketListItemService {
                     items.getSize(), items.getTotalElements(), items.getTotalPages(), items.isLast());
         }
         
-        List<BucketListItemRecord> itemRecords = items.map(this::mapToRecord).getContent();
+        List<BucketListItemResponse> itemRecords = items.map(this::mapToRecord).getContent();
         
         return new PagedResponse<>(itemRecords, items.getNumber(),
                 items.getSize(), items.getTotalElements(), items.getTotalPages(), items.isLast());
@@ -108,8 +108,8 @@ public class BucketListItemService {
     /**
      * Map BucketListItem entity to BucketListItemRecord DTO
      */
-    private BucketListItemRecord mapToRecord(BucketListItem item) {
-        return BucketListItemRecord.builder()
+    private BucketListItemResponse mapToRecord(BucketListItem item) {
+        return BucketListItemResponse.builder()
                 .id(item.getId())
                 .name(item.getName())
                 .description(item.getDescription())

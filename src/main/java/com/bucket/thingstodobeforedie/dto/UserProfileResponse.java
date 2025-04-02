@@ -1,51 +1,46 @@
 package com.bucket.thingstodobeforedie.dto;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * DTO for user profile responses
+ * Response with user profile information
  */
-@Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class UserProfileResponse {
+public record UserProfileResponse(
     // Basic user information
-    private Long id;
-    private String username;
-    private String email;
-    private String fullName;
-    private String bio;
-    private String profileImage;
-    private String role;
+    Long id,
+    String username,
+    String email,
+    String fullName,
+    String bio,
+    String profileImage,
+    String role,
     
     // Stats
-    private int totalBucketLists;
-    private int completedBucketLists;
-    private int activeBucketLists;
-    private int totalBlogPosts;
+    int totalBucketLists,
+    int completedBucketLists,
+    int activeBucketLists,
+    int totalBlogPosts,
     
     // Timestamps
-    private LocalDateTime createdAt;
-    private LocalDateTime lastActive;
+    LocalDateTime createdAt,
+    LocalDateTime lastActive,
     
     // Additional user details (can be null)
-    private String location;
-    private String website;
-    private String socialLinks; // Could be JSON or comma-separated values
-    private List<String> interests; // User's interests or hobbies
+    String location,
+    String website,
+    String socialLinks, // Could be JSON or comma-separated values
+    List<String> interests, // User's interests or hobbies
     
     // Recent activity
-    private List<ActivityResponse> activities;
-
-    private List<AchievementResponse> achievements;
+    List<ActivityResponse> recentActivities,
+    
+    // Achievements
+    List<AchievementResponse> achievements,
     
     // Profile completion percentage (calculated based on filled fields)
-    private int profileCompletionPercentage;
-} 
+    int profileCompletionPercentage
+) {} 

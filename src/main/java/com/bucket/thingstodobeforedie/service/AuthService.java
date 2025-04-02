@@ -2,7 +2,7 @@ package com.bucket.thingstodobeforedie.service;
 
 import com.bucket.thingstodobeforedie.dto.*;
 import com.bucket.thingstodobeforedie.entity.PasswordResetToken;
-import com.bucket.thingstodobeforedie.entity.Role;
+import com.bucket.thingstodobeforedie.enums.Role;
 import com.bucket.thingstodobeforedie.entity.User;
 import com.bucket.thingstodobeforedie.exception.AuthenticationException;
 import com.bucket.thingstodobeforedie.exception.ResourceNotFoundException;
@@ -54,13 +54,13 @@ public class AuthService {
 
             String token = tokenProvider.createToken(user);
 
-            return new AuthResponse(
-                    token,
-                    user.getId(),
-                    user.getUsername(),
-                    user.getEmail(),
-                    user.getRole().name()
-            );
+            return AuthResponse.builder()
+                    .token(token)
+                    .userId(user.getId())
+                    .username(user.getUsername())
+                    .email(user.getEmail())
+                    .role(user.getRole().name())
+                    .build();
         } catch (org.springframework.security.core.AuthenticationException e) {
             throw new AuthenticationException("Invalid username/password supplied", e);
         }
@@ -92,13 +92,13 @@ public class AuthService {
 
         String token = tokenProvider.createToken(savedUser);
 
-        return new AuthResponse(
-                token,
-                savedUser.getId(),
-                savedUser.getUsername(),
-                savedUser.getEmail(),
-                savedUser.getRole().name()
-        );
+        return AuthResponse.builder()
+                .token(token)
+                .userId(savedUser.getId())
+                .username(savedUser.getUsername())
+                .email(savedUser.getEmail())
+                .role(savedUser.getRole().name())
+                .build();
     }
 
     /**
@@ -109,7 +109,7 @@ public class AuthService {
      */
     @Transactional
     public boolean processForgotPasswordRequest(ForgotPasswordRequest request) {
-        String email = request.getEmail();
+        String email = request.email();
 
         Optional<User> userOptional = userRepository.findByEmail(email);
         if (userOptional.isEmpty()) {
@@ -166,7 +166,7 @@ public class AuthService {
      */
     @Transactional
     public boolean resetPassword(ResetPasswordRequest request) {
-        Optional<PasswordResetToken> tokenOptional = tokenRepository.findByToken(request.getToken());
+        Optional<PasswordResetToken> tokenOptional = tokenRepository.findByToken(request.token());
 
         if (tokenOptional.isEmpty()) {
             return false;
@@ -179,9 +179,14 @@ public class AuthService {
             return false;
         }
 
+        // Check if passwords match
+        if (!request.password().equals(request.confirmPassword())) {
+            return false;
+        }
+
         // Update user password
         User user = resetToken.getUser();
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setPassword(passwordEncoder.encode(request.password()));
         userRepository.save(user);
 
         // Mark token as used

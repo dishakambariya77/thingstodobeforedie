@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -34,6 +33,7 @@ public class BucketList extends BaseEntity {
     
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
+    @Builder.Default
     private BucketStatus status = BucketStatus.ACTIVE;
 
     @ManyToOne(fetch = FetchType.LAZY)

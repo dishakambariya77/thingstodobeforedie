@@ -1,7 +1,7 @@
 package com.bucket.thingstodobeforedie.service;
 
-import com.bucket.thingstodobeforedie.dto.CategoryCountDTO;
-import com.bucket.thingstodobeforedie.dto.DashboardDTO;
+import com.bucket.thingstodobeforedie.dto.CategoryCount;
+import com.bucket.thingstodobeforedie.dto.DashboardResponse;
 import com.bucket.thingstodobeforedie.entity.BucketStatus;
 import com.bucket.thingstodobeforedie.repository.BlogPostRepository;
 import com.bucket.thingstodobeforedie.repository.BucketListRepository;
@@ -28,7 +28,7 @@ public class DashboardService {
      * Get dashboard data for the current user
      * @return Dashboard data including counts and recent items
      */
-    public DashboardDTO getDashboardData() {
+    public DashboardResponse getDashboardData() {
         // Get the current user ID
         Long userId = currentUser.getUser().getId();
         
@@ -46,7 +46,7 @@ public class DashboardService {
         }
         
         // Get category-wise blog post counts
-        List<CategoryCountDTO> blogCategories = Collections.emptyList();
+        List<CategoryCount> blogCategories = Collections.emptyList();
         try {
             blogCategories = blogService.getCategoryWiseBlogCount();
         } catch (Exception e) {
@@ -62,7 +62,7 @@ public class DashboardService {
         }
         
         // Build and return the dashboard DTO
-        return DashboardDTO.builder()
+        return DashboardResponse.builder()
                 .completedGoals(completedBucketListCount)
                 .inProgressGoals(activeBucketListCount)
                 .totalBlogPosts(blogPostCount)
