@@ -5,7 +5,9 @@ import com.bucket.thingstodobeforedie.entity.Activity;
 import com.bucket.thingstodobeforedie.entity.ActivityIcon;
 import com.bucket.thingstodobeforedie.entity.ActivityType;
 import com.bucket.thingstodobeforedie.entity.User;
+import com.bucket.thingstodobeforedie.exception.ResourceNotFoundException;
 import com.bucket.thingstodobeforedie.repository.ActivityRepository;
+import com.bucket.thingstodobeforedie.repository.UserRepository;
 import com.bucket.thingstodobeforedie.security.CurrentUser;
 import com.bucket.thingstodobeforedie.util.TimeAgoUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -29,6 +31,7 @@ public class ActivityService {
     private final ActivityRepository activityRepository;
     private final CurrentUser currentUser;
     private final ObjectMapper objectMapper;
+    private final UserRepository userRepository;
 
     /**
      * Track a user activity
@@ -63,18 +66,27 @@ public class ActivityService {
     @Transactional(readOnly = true)
     public Page<ActivityResponse> getCurrentUserActivities(Pageable pageable) {
         User user = currentUser.getUser();
+
+        long start = System.nanoTime(); // Capture start time
         Page<Activity> activities = activityRepository.findByUserOrderByCreatedAtDesc(user, pageable);
-        
+        long end = System.nanoTime(); // Capture end time
+
+        System.out.println("DB Query Execution Time: " + (end - start) / 1_000_000 + " ms");
+
         return activities.map(this::mapToActivityResponse);
     }
-    
+
+
     /**
      * Get activities for a specific user
      */
     @Transactional(readOnly = true)
     public Page<ActivityResponse> getUserActivities(Long userId, Pageable pageable) {
-        Page<Activity> activities = activityRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
-        
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Page<Activity> activities = activityRepository.findByUserOrderByCreatedAtDesc(user, pageable);
+
         return activities.map(this::mapToActivityResponse);
     }
     
