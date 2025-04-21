@@ -19,11 +19,6 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
     Page<Activity> findByUserOrderByCreatedAtDesc(User user, Pageable pageable);
     
     /**
-     * Find activities by user ID with pagination
-     */
-    Page<Activity> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
-    
-    /**
      * Find activities by user and activity type with pagination
      */
     Page<Activity> findByUserAndActivityTypeOrderByCreatedAtDesc(User user, ActivityType activityType, Pageable pageable);
